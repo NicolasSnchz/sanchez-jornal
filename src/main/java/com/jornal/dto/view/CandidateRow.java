@@ -1,5 +1,6 @@
 package com.jornal.dto.view;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.jornal.entity.Trade;
 import java.time.LocalDate;
 import java.util.List;
@@ -20,6 +21,8 @@ public record CandidateRow(
         long confirmedWorkDays,
         List<String> issues) {
 
+    /** Se publica tambien en el JSON de la API: el cliente no tiene que deducirlo de la lista de motivos. */
+    @JsonProperty("eligible")
     public boolean eligible() {
         return issues.isEmpty();
     }

@@ -12,6 +12,7 @@ import com.jornal.service.AssignmentService;
 import com.jornal.service.PaymentService;
 import com.jornal.service.WorkDayService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -31,7 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api")
-@Tag(name = "Trabajador", description = "Invitaciones, confirmacion de jornadas y de pagos")
+@Tag(name = "Trabajador", description = "Invitaciones, confirmaci\u00f3n de jornadas y de pagos")
 @SecurityRequirement(name = "bearerAuth")
 public class WorkerApiController {
 
@@ -53,7 +54,7 @@ public class WorkerApiController {
     }
 
     @GetMapping("/mis-asignaciones/{id}")
-    @Operation(summary = "Detalle de una asignacion: jornadas, pagos y saldo")
+    @Operation(summary = "Detalle de una asignaci\u00f3n: jornadas, pagos y saldo")
     public AssignmentDetail assignment(@AuthenticationPrincipal JornalUserDetails me, @PathVariable UUID id,
                                        @RequestParam(name = "semana", required = false)
                                        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate week) {
@@ -61,7 +62,8 @@ public class WorkerApiController {
     }
 
     @PostMapping("/mis-asignaciones/{id}/respuesta")
-    @Operation(summary = "Aceptar o rechazar una invitacion")
+    @Operation(summary = "Aceptar o rechazar una invitaci\u00f3n")
+    @ApiResponse(responseCode = "204", description = "Hecho; la respuesta no tiene cuerpo")
     public ResponseEntity<Void> respond(@AuthenticationPrincipal JornalUserDetails me, @PathVariable UUID id,
                                         @Valid @RequestBody RespondRequest request) {
         assignmentService.respond(me.id(), id, request.accept());
@@ -69,7 +71,8 @@ public class WorkerApiController {
     }
 
     @PostMapping("/mis-asignaciones/{id}/calificacion")
-    @Operation(summary = "Calificar al maestro de una asignacion finalizada")
+    @Operation(summary = "Calificar al maestro de una asignaci\u00f3n finalizada")
+    @ApiResponse(responseCode = "204", description = "Hecho; la respuesta no tiene cuerpo")
     public ResponseEntity<Void> rate(@AuthenticationPrincipal JornalUserDetails me, @PathVariable UUID id,
                                      @Valid @RequestBody RatingForm form) {
         assignmentService.rateForeman(me.id(), id, form.getRating());
@@ -84,6 +87,7 @@ public class WorkerApiController {
 
     @PostMapping("/jornadas/{id}/confirmacion")
     @Operation(summary = "Confirmar una jornada")
+    @ApiResponse(responseCode = "204", description = "Hecho; la respuesta no tiene cuerpo")
     public ResponseEntity<Void> confirm(@AuthenticationPrincipal JornalUserDetails me, @PathVariable UUID id) {
         workDayService.confirm(me.id(), id);
         return ResponseEntity.noContent().build();
@@ -91,6 +95,7 @@ public class WorkerApiController {
 
     @PostMapping("/jornadas/{id}/objecion")
     @Operation(summary = "Objetar una jornada con el motivo")
+    @ApiResponse(responseCode = "204", description = "Hecho; la respuesta no tiene cuerpo")
     public ResponseEntity<Void> dispute(@AuthenticationPrincipal JornalUserDetails me, @PathVariable UUID id,
                                         @Valid @RequestBody ReasonForm form) {
         workDayService.dispute(me.id(), id, form.getReason());
@@ -98,7 +103,8 @@ public class WorkerApiController {
     }
 
     @PostMapping("/pagos/{id}/confirmacion")
-    @Operation(summary = "Confirmar que recibi un pago")
+    @Operation(summary = "Confirmar que recib\u00ed un pago")
+    @ApiResponse(responseCode = "204", description = "Hecho; la respuesta no tiene cuerpo")
     public ResponseEntity<Void> confirmPayment(@AuthenticationPrincipal JornalUserDetails me, @PathVariable UUID id) {
         paymentService.confirmReceipt(me.id(), id);
         return ResponseEntity.noContent().build();

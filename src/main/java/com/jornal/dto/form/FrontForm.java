@@ -2,6 +2,7 @@ package com.jornal.dto.form;
 
 import com.jornal.entity.Trade;
 import com.jornal.entity.WorkFront;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -16,40 +17,53 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /** Datos para abrir un frente de trabajo. Los valores por defecto son una jornada tipica de obra. */
+@Schema(description = "Frente de trabajo: una labor con su oficio, cupos, jornal, d\u00edas y horario")
 public class FrontForm {
 
+    @Schema(description = "Labor", example = "Fundida de columnas y placa")
     @NotBlank
     @Size(max = 100)
     private String task;
 
+    @Schema(description = "Oficio requerido", example = "HELPER")
     @NotNull
     private Trade requiredTrade;
 
+    @Schema(description = "Cupos", example = "3")
     @Min(1)
     @Max(WorkFront.MAX_OPENINGS)
     private int openings = 1;
 
     /** Jornal en pesos enteros. El tope evita errores de digitacion (un cero de mas). */
+    @Schema(description = "Jornal ofrecido en pesos; no puede quedar por debajo del m\u00ednimo legal para el horario",
+            example = "75000")
     @NotNull
     @Min(10_000)
     @Max(1_000_000)
     private BigDecimal offeredDailyWage;
 
+    @Schema(description = "Fecha de inicio del frente", example = "2026-11-03")
     @NotNull
     private LocalDate startDate;
 
+    @Schema(description = "Fecha de fin del frente", example = "2026-12-18")
     @NotNull
     private LocalDate endDate;
 
+    @Schema(description = "D\u00edas de trabajo, de lunes a s\u00e1bado")
     @NotEmpty
     private Set<DayOfWeek> workDays = EnumSet.range(DayOfWeek.MONDAY, DayOfWeek.FRIDAY);
 
+    @Schema(description = "Hora de entrada (jornada diurna: de 6:00 a 19:00)",
+            example = "07:00", type = "string")
     @NotNull
     private LocalTime startTime = LocalTime.of(7, 0);
 
+    @Schema(description = "Hora de salida", example = "16:00", type = "string")
     @NotNull
     private LocalTime endTime = LocalTime.of(16, 0);
 
+    @Schema(description = "Minutos de almuerzo", example = "60")
     @Min(0)
     @Max(WorkFront.MAX_LUNCH_MINUTES)
     private int lunchBreakMinutes = 60;

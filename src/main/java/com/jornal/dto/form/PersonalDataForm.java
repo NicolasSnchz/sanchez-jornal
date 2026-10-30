@@ -1,8 +1,10 @@
 package com.jornal.dto.form;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.jornal.entity.DocumentType;
 import com.jornal.entity.Gender;
 import com.jornal.entity.User;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -72,6 +74,8 @@ public abstract class PersonalDataForm {
     private boolean acceptsDataPolicy;
 
     @AssertTrue(message = "{validacion.clave.no.coincide}")
+    @Schema(hidden = true)
+    @JsonIgnore
     public boolean isPasswordConfirmed() {
         return password == null || password.equals(passwordConfirmation);
     }

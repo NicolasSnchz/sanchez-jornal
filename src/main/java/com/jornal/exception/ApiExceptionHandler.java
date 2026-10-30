@@ -5,6 +5,7 @@ import com.jornal.dto.api.ApiError;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Clock;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -24,7 +28,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 
 /**
  * Traduce excepciones a respuestas ApiError para /api/**. Cada caso tiene su
- * codigo HTTP: 400 datos mal formados, 404 no existe (o no es tuyo), 409
+ * codigo HTTP: 400 datos mal formados, 401 credenciales del login, 404 no
+ * existe (o no es tuyo), 409
  * conflicto de concurrencia, 422 regla de negocio incumplida y 500 lo inesperado,
  * que se registra completo en el log pero nunca se describe al cliente.
  */
@@ -51,7 +56,7 @@ public class ApiExceptionHandler {
                 .map(error -> new ApiError.FieldError(error.getObjectName(),
                         messageSource.getMessage(error, LocaleContextHolder.getLocale())))
                 .toList();
-        List<ApiError.FieldError> all = new java.util.ArrayList<>(fields);
+        List<ApiError.FieldError> all = new ArrayList<>(fields);
         all.addAll(global);
         return build(HttpStatus.BAD_REQUEST, "api.validacion", new Object[0], request, all);
     }
@@ -87,6 +92,17 @@ public class ApiExceptionHandler {
     public ResponseEntity<ApiError> integrity(DataIntegrityViolationException e, HttpServletRequest request) {
         log.warn("Restriccion de datos violada en {}", request.getRequestURI());
         return build(HttpStatus.CONFLICT, "conflicto.datos", new Object[0], request, List.of());
+    }
+
+    /**
+     * Login de la API con credenciales invalidas. Correo inexistente y clave errada
+     * dan el mismo mensaje para no revelar que cuentas existen.
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiError> authentication(AuthenticationException e, HttpServletRequest request) {
+        String code = e instanceof LockedException ? "api.cuenta.bloqueada"
+                : e instanceof DisabledException ? "api.cuenta.inactiva" : "api.credenciales.invalidas";
+        return build(HttpStatus.UNAUTHORIZED, code, new Object[0], request, List.of());
     }
 
     /** @PreAuthorize lanza esta excepcion dentro del controlador; se responde 403 como lo haria el filtro. */

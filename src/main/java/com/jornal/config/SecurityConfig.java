@@ -55,7 +55,7 @@ public class SecurityConfig {
             + "img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self'; "
             + "form-action 'self'; frame-ancestors 'none'";
 
-    /** Swagger UI necesita estilos en linea; solo existe en desarrollo. */
+    /** Swagger UI necesita estilos en linea; solo se publica con los perfiles dev y demo. */
     private static final String SWAGGER_CSP = "default-src 'self'; script-src 'self'; "
             + "style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'";
 

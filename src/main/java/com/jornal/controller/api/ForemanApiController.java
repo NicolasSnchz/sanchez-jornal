@@ -24,6 +24,7 @@ import com.jornal.service.SiteService;
 import com.jornal.service.WorkDayService;
 import com.jornal.strategy.PaymentQuote;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -76,6 +77,7 @@ public class ForemanApiController {
 
     @PostMapping("/obras")
     @Operation(summary = "Crear una obra")
+    @ApiResponse(responseCode = "201", description = "Creado; el header Location apunta al nuevo recurso")
     public ResponseEntity<IdResponse> createSite(@AuthenticationPrincipal JornalUserDetails me,
                                                  @Valid @RequestBody SiteForm form) {
         return created("/api/obras/", siteService.createSite(me.id(), form));
@@ -89,6 +91,7 @@ public class ForemanApiController {
 
     @PostMapping("/obras/{id}/estado")
     @Operation(summary = "Iniciar, suspender, reanudar o finalizar una obra")
+    @ApiResponse(responseCode = "204", description = "Hecho; la respuesta no tiene cuerpo")
     public ResponseEntity<Void> changeStatus(@AuthenticationPrincipal JornalUserDetails me, @PathVariable UUID id,
                                              @RequestParam("accion") SiteAction action) {
         siteService.changeStatus(me.id(), id, action);
@@ -97,6 +100,7 @@ public class ForemanApiController {
 
     @PostMapping("/obras/{id}/frentes")
     @Operation(summary = "Abrir un frente de trabajo en una obra")
+    @ApiResponse(responseCode = "201", description = "Creado; el header Location apunta al nuevo recurso")
     public ResponseEntity<IdResponse> openFront(@AuthenticationPrincipal JornalUserDetails me, @PathVariable UUID id,
                                                 @Valid @RequestBody FrontForm form) {
         return created("/api/frentes/", siteService.openFront(me.id(), id, form));
@@ -119,6 +123,7 @@ public class ForemanApiController {
 
     @PostMapping("/frentes/{id}/invitaciones")
     @Operation(summary = "Invitar a un trabajador al frente")
+    @ApiResponse(responseCode = "201", description = "Creado; el header Location apunta al nuevo recurso")
     public ResponseEntity<IdResponse> invite(@AuthenticationPrincipal JornalUserDetails me, @PathVariable UUID id,
                                              @Valid @RequestBody InvitationForm form) {
         return created("/api/asignaciones/", assignmentService.invite(me.id(), id, form));
@@ -133,7 +138,7 @@ public class ForemanApiController {
     }
 
     @GetMapping("/asignaciones/{id}")
-    @Operation(summary = "Planilla de una asignacion: semana, jornadas, pagos y saldo")
+    @Operation(summary = "Planilla de una asignaci\u00f3n: semana, jornadas, pagos y saldo")
     public AssignmentDetail assignment(@AuthenticationPrincipal JornalUserDetails me, @PathVariable UUID id,
                                        @RequestParam(name = "semana", required = false)
                                        @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate week) {
@@ -141,7 +146,8 @@ public class ForemanApiController {
     }
 
     @PostMapping("/asignaciones/{id}/cancelacion")
-    @Operation(summary = "Cancelar una invitacion o una asignacion sin jornadas")
+    @Operation(summary = "Cancelar una invitaci\u00f3n o una asignaci\u00f3n sin jornadas")
+    @ApiResponse(responseCode = "204", description = "Hecho; la respuesta no tiene cuerpo")
     public ResponseEntity<Void> cancel(@AuthenticationPrincipal JornalUserDetails me, @PathVariable UUID id,
                                        @Valid @RequestBody ReasonForm form) {
         assignmentService.cancel(me.id(), id, form.getReason());
@@ -149,7 +155,8 @@ public class ForemanApiController {
     }
 
     @PostMapping("/asignaciones/{id}/finalizacion")
-    @Operation(summary = "Finalizar la asignacion y calificar al trabajador")
+    @Operation(summary = "Finalizar la asignaci\u00f3n y calificar al trabajador")
+    @ApiResponse(responseCode = "204", description = "Hecho; la respuesta no tiene cuerpo")
     public ResponseEntity<Void> complete(@AuthenticationPrincipal JornalUserDetails me, @PathVariable UUID id,
                                          @Valid @RequestBody CompletionForm form) {
         assignmentService.complete(me.id(), id, form);
@@ -159,7 +166,8 @@ public class ForemanApiController {
     // ------------------------------------------------------------ jornadas
 
     @PostMapping("/asignaciones/{id}/jornadas")
-    @Operation(summary = "Registrar la jornada de un dia")
+    @Operation(summary = "Registrar la jornada de un d\u00eda")
+    @ApiResponse(responseCode = "201", description = "Creado; el header Location apunta al nuevo recurso")
     public ResponseEntity<IdResponse> registerWorkDay(@AuthenticationPrincipal JornalUserDetails me,
                                                       @PathVariable UUID id, @Valid @RequestBody WorkDayForm form) {
         UUID dayId = workDayService.registerWorkDay(me.id(), id, form);
@@ -168,6 +176,7 @@ public class ForemanApiController {
 
     @PutMapping("/asignaciones/{id}/jornadas/{dayId}")
     @Operation(summary = "Corregir una jornada por confirmar u objetada")
+    @ApiResponse(responseCode = "204", description = "Hecho; la respuesta no tiene cuerpo")
     public ResponseEntity<Void> correctWorkDay(@AuthenticationPrincipal JornalUserDetails me, @PathVariable UUID id,
                                                @PathVariable UUID dayId, @Valid @RequestBody WorkDayForm form) {
         requireSameAssignment(id, workDayService.getForCorrection(me.id(), dayId).assignmentId());
@@ -185,7 +194,8 @@ public class ForemanApiController {
     }
 
     @PostMapping("/asignaciones/{id}/pagos")
-    @Operation(summary = "Registrar un anticipo, una liquidacion de periodo o la liquidacion final")
+    @Operation(summary = "Registrar un anticipo, una liquidaci\u00f3n de periodo o la liquidaci\u00f3n final")
+    @ApiResponse(responseCode = "201", description = "Creado; el header Location apunta al nuevo recurso")
     public ResponseEntity<PaymentRow> pay(@AuthenticationPrincipal JornalUserDetails me, @PathVariable UUID id,
                                           @Valid @RequestBody PaymentForm form) {
         PaymentRow payment = paymentService.register(me.id(), id, form);
@@ -193,7 +203,8 @@ public class ForemanApiController {
     }
 
     @PostMapping("/asignaciones/{id}/pagos/{paymentId}/anulacion")
-    @Operation(summary = "Anular un pago que el trabajador aun no ha confirmado")
+    @Operation(summary = "Anular un pago que el trabajador a\u00fan no ha confirmado")
+    @ApiResponse(responseCode = "204", description = "Hecho; la respuesta no tiene cuerpo")
     public ResponseEntity<Void> cancelPayment(@AuthenticationPrincipal JornalUserDetails me, @PathVariable UUID id,
                                               @PathVariable UUID paymentId, @Valid @RequestBody ReasonForm form) {
         requireSameAssignment(id, paymentService.receiptForForeman(me.id(), paymentId).assignmentId());

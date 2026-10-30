@@ -4,7 +4,7 @@ import com.jornal.entity.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.UUID;
 
-@Schema(description = "Token de acceso. Se envia en cada peticion como Authorization: Bearer {accessToken}")
+@Schema(description = "Token de acceso. Se envia en cada petici\u00f3n como Authorization: Bearer {accessToken}")
 public record TokenResponse(
         String accessToken,
         @Schema(example = "Bearer") String tokenType,
