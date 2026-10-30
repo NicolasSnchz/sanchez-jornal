@@ -1,0 +1,26 @@
+# Compilacion
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+bin/
+out/
+
+# Logs y archivos locales
+logs/
+*.log
+.env
+*.env.local
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Postman/Newman: reportes generados
+postman/reports/
