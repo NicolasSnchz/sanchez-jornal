@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: page(#{invitacion.titulo}, ~{::view}, 'page page-narrow')}">
+<body>
+<th:block th:fragment="view" th:with="f=${detail.front()},c=${candidate}">
+    <div class="page-head">
+        <div>
+            <div class="crumbs">
+                <a th:href="@{/maestro/obras/{id}(id=${detail.siteId()})}" th:text="${detail.siteName()}">Obra</a><span aria-hidden="true">/</span>
+                <a th:href="@{/maestro/frentes/{id}(id=${f.id()})}" th:text="${f.task()}">Frente</a>
+            </div>
+            <h1 th:text="#{invitacion.titulo}">Invitar al frente</h1>
+        </div>
+    </div>
+
+    <div class="stack stack-lg">
+        <section class="panel">
+            <div class="panel-body split">
+                <div class="person">
+                    <span class="avatar avatar-lg" th:text="${c.initials()}">BC</span>
+                    <span class="person-text">
+                        <strong th:text="${c.fullName()}">Nombre</strong>
+                        <span th:text="#{${'oficio.' + c.trade()}} + ', ' + #{candidatos.anios(${c.yearsOfExperience()})} + ', ' + ${c.neighborhood()}">Ayudante</span>
+                    </span>
+                </div>
+                <span th:replace="~{fragments/ui :: rating(${c.rating()}, ${c.ratingCount()})}"></span>
+            </div>
+            <div class="panel-foot" th:unless="${c.eligible()}">
+                <p class="field-error" th:each="issue : ${c.issues()}" th:text="#{${issue}}">Motivo</p>
+            </div>
+        </section>
+
+        <form class="panel" th:object="${form}" th:action="@{/maestro/frentes/{id}/invitaciones(id=${f.id()})}" method="post" novalidate>
+            <input type="hidden" th:field="*{workerId}">
+            <div class="panel-body form">
+                <div th:replace="~{fragments/ui :: globalErrors}"></div>
+                <div class="form-grid">
+                    <div th:replace="~{fragments/ui :: money('dailyWage', #{campo.jornal.pactado}, #{invitacion.jornal.pista(${@fmt.money(f.offeredDailyWage())}, ${@fmt.money(detail.minimumDailyWage())})})}"></div>
+                    <div th:replace="~{fragments/ui :: input('startDate', #{campo.fecha.inicio}, 'date', #{invitacion.inicio.pista(${@fmt.date(f.endDate())})})}"></div>
+                </div>
+                <p class="muted small" th:text="#{invitacion.explicacion(${@fmt.days(f.workDays())}, ${@fmt.time(f.startTime())}, ${@fmt.time(f.endTime())})}">Explicación</p>
+            </div>
+            <div class="panel-foot split">
+                <a class="btn btn-quiet" th:href="@{/maestro/frentes/{id}(id=${f.id()})}" th:text="#{accion.cancelar}">Cancelar</a>
+                <button class="btn btn-primary" type="submit" th:disabled="${!c.eligible()}" th:text="#{invitacion.enviar}">Enviar invitación</button>
+            </div>
+        </form>
+    </div>
+</th:block>
+</body>
+</html>

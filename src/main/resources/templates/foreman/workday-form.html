@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{fragments/layout :: page(${correction == null} ? #{jornada.registrar} : #{jornada.corregir}, ~{::view}, 'page page-narrow')}">
+<body>
+<th:block th:fragment="view">
+    <div class="page-head">
+        <div>
+            <div class="crumbs">
+                <a th:href="@{/maestro/asignaciones/{id}(id=${a.id()})}" th:text="${a.workerName()}">Trabajador</a><span aria-hidden="true">/</span>
+                <span th:text="${a.siteName()}">Obra</span>
+            </div>
+            <h1 th:text="${correction == null} ? #{jornada.registrar} : #{jornada.corregir}">Registrar jornada</h1>
+            <p class="lede" th:text="#{jornada.form.lede(${@fmt.days(a.scheduleDays())}, ${@fmt.time(a.startTime())}, ${@fmt.time(a.endTime())}, ${a.lunchBreakMinutes()})}">Horario pactado</p>
+        </div>
+    </div>
+
+    <div class="notice notice-warning" th:if="${correction != null and correction.current().disputeReason() != null}">
+        <svg th:replace="~{fragments/icons :: alert}"></svg>
+        <div>
+            <p th:text="#{jornada.corregir.objecion}">El trabajador objetó esta jornada:</p>
+            <p><em th:text="'“' + ${correction.current().disputeReason()} + '”'">motivo</em></p>
+        </div>
+    </div>
+
+    <form class="panel" th:object="${form}" method="post" novalidate
+          th:action="${correction == null} ? @{/maestro/asignaciones/{id}/jornadas(id=${a.id()})} : @{/maestro/jornadas/{id}(id=${correction.workDayId()})}">
+        <div class="panel-body form">
+            <div th:replace="~{fragments/ui :: globalErrors}"></div>
+            <div class="form-grid">
+                <th:block th:if="${correction == null}">
+                    <div class="wide" th:insert="~{fragments/ui :: input('date', #{campo.fecha}, 'date', #{jornada.fecha.pista(${a.nextUnsettledDate() != null} ? ${@fmt.date(a.nextUnsettledDate())} : '')})}"></div>
+                </th:block>
+                <th:block th:unless="${correction == null}">
+                    <input type="hidden" th:field="*{date}">
+                    <div class="wide field">
+                        <span class="label" th:text="#{campo.fecha}">Fecha</span>
+                        <strong th:text="${@fmt.longDay(form.date)}">Lunes</strong>
+                    </div>
+                </th:block>
+                <div th:replace="~{fragments/ui :: input('checkInTime', #{campo.entrada}, 'time', null)}"></div>
+                <div th:replace="~{fragments/ui :: input('checkOutTime', #{campo.salida}, 'time', null)}"></div>
+                <div th:replace="~{fragments/ui :: input('breakMinutes', #{campo.descanso}, 'number', #{campo.descanso.pista})}"></div>
+                <div th:replace="~{fragments/ui :: input('taskPerformed', #{campo.labor.realizada}, 'text', null)}"></div>
+                <div class="wide field" th:classappend="${#fields.hasErrors('notes')} ? 'field-invalid'">
+                    <label for="notes" th:text="#{campo.novedades}">Novedades</label>
+                    <textarea th:field="*{notes}" rows="2" th:placeholder="#{campo.novedades.pista}"></textarea>
+                    <p class="field-error" th:if="${#fields.hasErrors('notes')}" th:errors="*{notes}"></p>
+                </div>
+            </div>
+            <div class="ledger">
+                <div class="ledger-row"><span th:text="#{jornada.valor.dia}">Jornal completo</span><span class="money" th:text="${@fmt.money(a.dailyWage())}">$75.000</span></div>
+                <div class="ledger-row"><span th:text="#{frente.valor.hora}">Hora ordinaria</span><span class="money" th:text="${@fmt.money(a.hourlyRate())}">$9.375</span></div>
+                <div class="ledger-row"><span th:text="#{frente.valor.extra}">Hora extra</span><span class="money" th:text="${@fmt.money(a.overtimeRate())}">$11.719</span></div>
+            </div>
+            <p class="hint" th:text="#{jornada.reglas}">Reglas</p>
+        </div>
+        <div class="panel-foot split">
+            <a class="btn btn-quiet" th:href="@{/maestro/asignaciones/{id}(id=${a.id()})}" th:text="#{accion.cancelar}">Cancelar</a>
+            <button class="btn btn-primary" type="submit" th:text="${correction == null} ? #{jornada.guardar} : #{jornada.guardar.correccion}">Guardar jornada</button>
+        </div>
+    </form>
+</th:block>
+</body>
+</html>

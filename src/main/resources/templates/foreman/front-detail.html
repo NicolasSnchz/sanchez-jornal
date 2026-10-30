@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: page(${detail.front().task()}, ~{::view}, 'page')}">
+<body>
+<th:block th:fragment="view" th:with="f=${detail.front()}">
+    <div class="page-head">
+        <div>
+            <div class="crumbs">
+                <a th:href="@{/maestro/obras}" th:text="#{titulo.obras}">Obras</a><span aria-hidden="true">/</span>
+                <a th:href="@{/maestro/obras/{id}(id=${detail.siteId()})}" th:text="${detail.siteName()}">Obra</a>
+            </div>
+            <h1 th:text="${f.task()}">Frente</h1>
+            <p class="lede" th:text="#{frente.lede(#{${'oficio.' + f.requiredTrade()}}, ${@fmt.date(f.startDate())}, ${@fmt.date(f.endDate())})}">Ayudante, del ... al ...</p>
+        </div>
+    </div>
+
+    <div class="grid grid-main">
+        <div class="stack stack-lg">
+            <section class="panel" th:if="${f.canInvite()}">
+                <div class="panel-head">
+                    <div>
+                        <h2 th:text="#{candidatos.titulo}">Buscar trabajadores</h2>
+                        <p th:text="#{candidatos.ayuda(#{${'oficio.' + f.requiredTrade()}}, ${detail.siteCity()})}">Ayudantes en Cúcuta</p>
+                    </div>
+                    <form class="cluster search" method="get" th:action="@{/maestro/frentes/{id}(id=${f.id()})}" role="search">
+                        <label class="sr-only" for="nombre" th:text="#{candidatos.buscar}">Buscar por nombre</label>
+                        <input type="search" id="nombre" name="nombre" th:value="${name}" th:placeholder="#{candidatos.placeholder}">
+                        <button class="btn" type="submit" th:text="#{accion.buscar}">Buscar</button>
+                    </form>
+                </div>
+                <div class="table-wrap" th:if="${!#lists.isEmpty(candidates)}">
+                    <table class="table table-stack">
+                        <thead><tr>
+                            <th th:text="#{candidatos.col.trabajador}">Trabajador</th>
+                            <th th:text="#{candidatos.col.experiencia}">Experiencia</th>
+                            <th th:text="#{candidatos.col.calificacion}">Calificación</th>
+                            <th th:text="#{candidatos.col.arl}">ARL hasta</th>
+                            <th><span class="sr-only" th:text="#{pagos.col.acciones}">Acciones</span></th>
+                        </tr></thead>
+                        <tbody>
+                        <tr th:each="c : ${candidates}">
+                            <td class="cell-main">
+                                <div class="person">
+                                    <span class="avatar" th:text="${c.initials()}">BC</span>
+                                    <span class="person-text">
+                                        <strong th:text="${c.fullName()}">Nombre</strong>
+                                        <span th:text="${c.neighborhood()} + (${c.hasOwnTools()} ? ', ' + #{candidatos.con.herramienta} : '')">Barrio</span>
+                                    </span>
+                                </div>
+                            </td>
+                            <td th:attr="data-label=#{candidatos.col.experiencia}" class="small">
+                                <span th:text="#{candidatos.anios(${c.yearsOfExperience()})}">4 años</span><br>
+                                <span class="muted" th:text="#{candidatos.jornadas(${c.confirmedWorkDays()})}">20 jornadas en Jornal</span>
+                            </td>
+                            <td><span th:replace="~{fragments/ui :: rating(${c.rating()}, ${c.ratingCount()})}"></span></td>
+                            <td th:attr="data-label=#{candidatos.col.arl}" th:text="${@fmt.date(c.arlValidUntil())}">fecha</td>
+                            <td class="right reasons">
+                                <a th:if="${c.eligible()}" class="btn btn-sm btn-primary"
+                                   th:href="@{/maestro/frentes/{f}/invitar/{w}(f=${f.id()},w=${c.workerId()})}" th:text="#{accion.invitar}">Invitar</a>
+                                <ul th:unless="${c.eligible()}" class="small" th:aria-label="#{candidatos.no.apto}">
+                                    <li th:each="issue : ${c.issues()}" class="chip chip-neutral chip-plain" th:text="#{${issue}}">motivo</li>
+                                </ul>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="empty" th:if="${#lists.isEmpty(candidates)}">
+                    <strong th:text="#{candidatos.vacio}">No hay trabajadores con ese criterio</strong>
+                    <span th:text="#{candidatos.vacio.texto}">Solo aparecen quienes reciben ofertas.</span>
+                </div>
+            </section>
+
+            <div class="notice notice-info" th:unless="${f.canInvite()}">
+                <svg th:replace="~{fragments/icons :: info}"></svg>
+                <p th:text="${f.availableOpenings() == 0} ? #{frente.sin.cupos} : #{frente.no.invita}">No se puede invitar.</p>
+            </div>
+
+            <section class="panel">
+                <div class="panel-head"><h2 th:text="#{frente.asignaciones}">Asignaciones del frente</h2></div>
+                <div class="table-wrap" th:if="${!#lists.isEmpty(detail.assignments())}">
+                    <table class="table table-stack">
+                        <thead><tr>
+                            <th th:text="#{cuadrilla.col.trabajador}">Trabajador</th>
+                            <th th:text="#{cuadrilla.col.estado}">Estado</th>
+                            <th class="right" th:text="#{cuadrilla.col.jornal}">Jornal</th>
+                            <th th:text="#{cuadrilla.col.inicio}">Inicio</th>
+                        </tr></thead>
+                        <tbody>
+                        <tr th:each="r : ${detail.assignments()}">
+                            <td class="cell-main">
+                                <a class="person" th:href="@{/maestro/asignaciones/{id}(id=${r.id()})}">
+                                    <span class="avatar" th:text="${r.workerInitials()}">YQ</span>
+                                    <span class="person-text"><strong th:text="${r.workerName()}">Nombre</strong>
+                                        <span th:text="#{cuadrilla.jornadas(${r.workedDays()})}">10 jornadas</span></span>
+                                </a>
+                            </td>
+                            <td><span th:replace="~{fragments/ui :: assignmentStatus(${r.status()})}"></span></td>
+                            <td class="right" th:attr="data-label=#{cuadrilla.col.jornal}"><span class="money" th:text="${@fmt.money(r.dailyWage())}">$75.000</span></td>
+                            <td th:attr="data-label=#{cuadrilla.col.inicio}" th:text="${@fmt.date(r.startDate())}">fecha</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="empty" th:if="${#lists.isEmpty(detail.assignments())}" th:text="#{frente.sin.asignaciones}">Nadie ha sido invitado.</p>
+            </section>
+        </div>
+
+        <aside class="stack stack-lg">
+            <section class="panel panel-accent">
+                <div class="panel-body stack">
+                    <div>
+                        <span class="muted small" th:text="#{frente.jornal.ofrecido}">Jornal ofrecido</span>
+                        <div class="money-lg" th:text="${@fmt.money(f.offeredDailyWage())}">$75.000</div>
+                    </div>
+                    <dl class="facts">
+                        <dt th:text="#{frente.dias}">Días</dt><dd th:text="${@fmt.days(f.workDays())}">lun a vie</dd>
+                        <dt th:text="#{frente.horario}">Horario</dt><dd th:text="${@fmt.time(f.startTime())} + ' – ' + ${@fmt.time(f.endTime())}">7–4</dd>
+                        <dt th:text="#{frente.almuerzo}">Almuerzo</dt><dd th:text="${@fmt.duration(f.lunchBreakMinutes())}">1 h</dd>
+                        <dt th:text="#{frente.horas.dia}">Horas por día</dt><dd th:text="${@fmt.duration(f.scheduledMinutesPerDay())}">8 h</dd>
+                        <dt th:text="#{frente.horas.semana}">Horas a la semana</dt><dd th:text="${@fmt.duration(f.scheduledMinutesPerWeek())}">40 h</dd>
+                        <dt th:text="#{frente.valor.hora}">Hora ordinaria</dt><dd class="money" th:text="${@fmt.money(f.hourlyRate())}">$9.375</dd>
+                        <dt th:text="#{frente.valor.extra}">Hora extra</dt><dd class="money" th:text="${@fmt.money(f.overtimeRate())}">$11.719</dd>
+                        <dt th:text="#{frente.cupos}">Cupos</dt><dd th:text="#{frente.cupos.libres(${f.availableOpenings()}, ${f.openings()})}">1 libre de 4</dd>
+                    </dl>
+                    <p class="muted small" th:text="#{frente.minimo.legal(${@fmt.money(detail.minimumDailyWage())})}">Jornal mínimo legal para este horario</p>
+                </div>
+            </section>
+        </aside>
+    </div>
+</th:block>
+</body>
+</html>

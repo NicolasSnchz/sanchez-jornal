@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/bare :: bare(#{titulo.registro.trabajador}, ~{::view})}">
+<body>
+<div th:fragment="view" class="page register-page">
+    <a class="brand" th:href="@{/login}">
+        <svg th:replace="~{fragments/icons :: mark}"></svg>
+        <span class="brand-name">Jornal</span>
+    </a>
+    <div class="page-head">
+        <div>
+            <div class="crumbs"><a th:href="@{/registro}" th:text="#{registro.volver}">Volver</a></div>
+            <h1 th:text="#{titulo.registro.trabajador}">Registro</h1>
+            <p class="lede" th:text="#{titulo.registro.trabajador.lede}">Texto</p>
+        </div>
+    </div>
+    <form class="panel" th:action="@{/registro/trabajador}" th:object="${form}" method="post" novalidate>
+        <div class="panel-body form">
+            <div th:replace="~{fragments/ui :: globalErrors}"></div>
+            <th:block th:replace="~{fragments/register :: personal}"></th:block>
+            <fieldset class="fieldset">
+                <legend th:text="#{registro.seccion.trabajo}">Tu trabajo</legend>
+                <div class="form-grid">
+                    <div class="field" th:classappend="${#fields.hasErrors('trade')} ? 'field-invalid'">
+                        <label for="trade" th:text="#{campo.oficio}">Oficio</label>
+                        <select th:field="*{trade}">
+                            <option value="" th:text="#{campo.seleccione}">Selecciona</option>
+                            <option th:each="t : ${trades}" th:value="${t}" th:text="#{${'oficio.' + t}}">Oficio</option>
+                        </select>
+                        <p class="field-error" th:if="${#fields.hasErrors('trade')}" th:errors="*{trade}"></p>
+                    </div>
+                    <div th:replace="~{fragments/ui :: input('yearsOfExperience', #{campo.experiencia}, 'number', null)}"></div>
+                    <div th:replace="~{fragments/ui :: input('neighborhood', #{campo.barrio}, 'text', #{campo.barrio.pista})}"></div>
+                    <div th:replace="~{fragments/ui :: input('emergencyPhone', #{campo.telefono.emergencia}, 'tel', null)}"></div>
+                    <div th:replace="~{fragments/ui :: input('arlValidUntil', #{campo.arl}, 'date', #{campo.arl.pista})}"></div>
+                    <div class="field">
+                        <span class="label" th:text="#{campo.herramienta}">Herramienta</span>
+                        <label class="check"><input type="checkbox" th:field="*{hasOwnTools}"><span th:text="#{campo.herramienta.si}">Tengo herramienta propia</span></label>
+                    </div>
+                </div>
+            </fieldset>
+            <th:block th:replace="~{fragments/register :: account}"></th:block>
+        </div>
+        <div class="panel-foot split">
+            <span class="muted small" th:text="#{registro.pie}">Texto</span>
+            <button class="btn btn-primary btn-lg" type="submit" th:text="#{registro.boton}">Crear cuenta</button>
+        </div>
+    </form>
+</div>
+</body>
+</html>

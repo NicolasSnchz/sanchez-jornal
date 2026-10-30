@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: page(#{titulo.pagos}, ~{::view}, 'page')}">
+<body>
+<th:block th:fragment="view" th:with="m=${month}">
+    <div class="page-head">
+        <div>
+            <h1 th:text="#{titulo.pagos}">Pagos</h1>
+            <p class="lede" th:text="#{pagos.lede}">Anticipos y liquidaciones de todas tus obras.</p>
+        </div>
+        <nav class="week-nav" th:aria-label="#{pagos.navegar}">
+            <a class="btn btn-sm" th:href="@{/maestro/pagos(mes=${m.previousMonth()})}" th:aria-label="#{pagos.mes.anterior}">&lsaquo;</a>
+            <span class="range" th:text="${@fmt.month(m.month())}">Octubre de 2026</span>
+            <a class="btn btn-sm" th:if="${m.hasNext()}" th:href="@{/maestro/pagos(mes=${m.nextMonth()})}" th:aria-label="#{pagos.mes.siguiente}">&rsaquo;</a>
+            <span class="btn btn-sm" th:unless="${m.hasNext()}" aria-disabled="true">&rsaquo;</span>
+        </nav>
+    </div>
+
+    <div class="stack stack-lg">
+        <section class="board">
+            <div class="board-cell">
+                <span class="label" th:text="#{pagos.total.mes}">Total pagado</span>
+                <span class="value" th:text="${@fmt.money(m.total())}">$0</span>
+                <span class="detail" th:text="#{pagos.sin.anulados}">Sin contar anulados</span>
+            </div>
+            <div class="board-cell">
+                <span class="label" th:text="#{pagos.liquidaciones}">Liquidaciones</span>
+                <span class="value" th:text="${@fmt.money(m.settlementsTotal())}">$0</span>
+                <span class="detail" th:text="#{pagos.cantidad(${m.settlementsCount()})}">3 pagos</span>
+            </div>
+            <div class="board-cell">
+                <span class="label" th:text="#{pagos.anticipos}">Anticipos</span>
+                <span class="value" th:text="${@fmt.money(m.advancesTotal())}">$0</span>
+                <span class="detail" th:text="#{pagos.cantidad(${m.advancesCount()})}">2 pagos</span>
+            </div>
+            <div class="board-cell">
+                <span class="label" th:text="#{pagos.por.confirmar}">Sin confirmar</span>
+                <span class="value" th:text="${m.pendingConfirmation()}">1</span>
+                <span class="detail" th:text="#{pagos.por.confirmar.detalle}">El trabajador no ha confirmado</span>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="table-wrap" th:if="${!#lists.isEmpty(m.payments())}">
+                <table class="table table-stack">
+                    <thead><tr>
+                        <th th:text="#{pagos.col.comprobante}">Comprobante</th>
+                        <th th:text="#{cuadrilla.col.trabajador}">Trabajador</th>
+                        <th th:text="#{pagos.col.tipo}">Tipo</th>
+                        <th th:text="#{pagos.col.fecha}">Fecha</th>
+                        <th class="right" th:text="#{pagos.col.valor}">Valor</th>
+                        <th th:text="#{pagos.col.estado}">Estado</th>
+                    </tr></thead>
+                    <tbody>
+                    <tr th:each="p : ${m.payments()}" th:classappend="${p.status().name() == 'CANCELLED'} ? 'row-muted'">
+                        <td class="cell-main"><a class="num" th:href="@{/maestro/pagos/{id}/comprobante(id=${p.id()})}" th:text="${p.receiptNumber()}">JOR-000001</a></td>
+                        <td th:attr="data-label=#{cuadrilla.col.trabajador}">
+                            <a th:href="@{/maestro/asignaciones/{id}(id=${p.assignmentId()})}" th:text="${p.workerName()}">Nombre</a>
+                            <div class="small muted" th:text="${p.siteName()}">Obra</div>
+                        </td>
+                        <td th:attr="data-label=#{pagos.col.tipo}" th:text="#{${'pago.tipo.' + p.type()}}">Tipo</td>
+                        <td th:attr="data-label=#{pagos.col.fecha}" th:text="${@fmt.dateTime(p.paidAt())}">fecha</td>
+                        <td class="right"><span class="money" th:text="${@fmt.money(p.amount())}">$0</span></td>
+                        <td><span th:replace="~{fragments/ui :: paymentStatus(${p.status()})}"></span></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="empty" th:if="${#lists.isEmpty(m.payments())}">
+                <strong th:text="#{pagos.vacio.mes}">No hubo pagos este mes</strong>
+            </div>
+        </section>
+    </div>
+</th:block>
+</body>
+</html>

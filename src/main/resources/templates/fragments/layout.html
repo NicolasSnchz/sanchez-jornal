@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<!--/*
+  Plantilla base de las paginas con sesion. Cada pagina la usa asi:
+  <html th:replace="~{fragments/layout :: page(#{titulo}, ~{::view}, 'page')}">
+  y define su contenido en un elemento con th:fragment="view".
+*/-->
+<html lang="es-CO" xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, view, pageClass)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' | Jornal'">Jornal</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+    <link rel="stylesheet" th:href="@{/css/jornal.css}">
+    <script th:src="@{/js/jornal.js}" defer></script>
+</head>
+<body>
+<a class="sr-only" href="#contenido" th:text="#{layout.saltar}">Saltar al contenido</a>
+<header class="topbar">
+    <div class="topbar-inner">
+        <a class="brand" th:href="@{/}">
+            <svg th:replace="~{fragments/icons :: mark}"></svg>
+            <span class="brand-name">Jornal</span>
+        </a>
+        <nav class="nav" th:aria-label="#{layout.navegacion}">
+            <th:block th:if="${me != null and me.isForeman()}">
+                <a th:href="@{/maestro}" th:attr="aria-current=${currentPath == '/maestro'} ? 'page'" th:text="#{nav.panel}">Panel</a>
+                <a th:href="@{/maestro/obras}" th:attr="aria-current=${#strings.startsWith(currentPath, '/maestro/obras') or #strings.startsWith(currentPath, '/maestro/frentes')} ? 'page'" th:text="#{nav.obras}">Obras</a>
+                <a th:href="@{/maestro/cuadrilla}" th:attr="aria-current=${#strings.startsWith(currentPath, '/maestro/cuadrilla') or #strings.startsWith(currentPath, '/maestro/asignaciones') or #strings.startsWith(currentPath, '/maestro/jornadas')} ? 'page'" th:text="#{nav.cuadrilla}">Cuadrilla</a>
+                <a th:href="@{/maestro/pagos}" th:attr="aria-current=${#strings.startsWith(currentPath, '/maestro/pagos')} ? 'page'" th:text="#{nav.pagos}">Pagos</a>
+            </th:block>
+            <th:block th:if="${me != null and !me.isForeman()}">
+                <a th:href="@{/trabajador}" th:attr="aria-current=${currentPath == '/trabajador'} ? 'page'" th:text="#{nav.inicio}">Inicio</a>
+                <a th:href="@{/trabajador/asignaciones}" th:attr="aria-current=${#strings.startsWith(currentPath, '/trabajador/asignaciones') or #strings.startsWith(currentPath, '/trabajador/pagos')} ? 'page'" th:text="#{nav.mis.trabajos}">Mis trabajos</a>
+            </th:block>
+        </nav>
+        <div class="topbar-user" th:if="${me != null}">
+            <div class="who">
+                <strong th:text="${me.fullName()}">Nombre</strong>
+                <span th:text="#{${'rol.' + me.role()}}">Rol</span>
+            </div>
+            <a class="avatar" th:href="${me.isForeman()} ? @{/maestro/perfil} : @{/trabajador/perfil}"
+               th:text="${me.initials()}" th:title="#{nav.perfil}">CR</a>
+            <form class="logout-form" th:action="@{/logout}" method="post">
+                <button type="submit" th:text="#{nav.salir}">Salir</button>
+            </form>
+        </div>
+    </div>
+</header>
+
+<main id="contenido" th:class="${pageClass}">
+    <div th:replace="~{fragments/ui :: notice}"></div>
+    <th:block th:replace="${view}"></th:block>
+</main>
+
+<nav class="bottom-nav" th:if="${me != null}" th:aria-label="#{layout.navegacion}">
+    <th:block th:if="${me.isForeman()}">
+        <a th:href="@{/maestro}" th:attr="aria-current=${currentPath == '/maestro'} ? 'page'"><svg th:replace="~{fragments/icons :: home}"></svg><span th:text="#{nav.panel}">Panel</span></a>
+        <a th:href="@{/maestro/obras}" th:attr="aria-current=${#strings.startsWith(currentPath, '/maestro/obras') or #strings.startsWith(currentPath, '/maestro/frentes')} ? 'page'"><svg th:replace="~{fragments/icons :: site}"></svg><span th:text="#{nav.obras}">Obras</span></a>
+        <a th:href="@{/maestro/cuadrilla}" th:attr="aria-current=${#strings.startsWith(currentPath, '/maestro/cuadrilla') or #strings.startsWith(currentPath, '/maestro/asignaciones') or #strings.startsWith(currentPath, '/maestro/jornadas')} ? 'page'"><svg th:replace="~{fragments/icons :: crew}"></svg><span th:text="#{nav.cuadrilla}">Cuadrilla</span></a>
+        <a th:href="@{/maestro/pagos}" th:attr="aria-current=${#strings.startsWith(currentPath, '/maestro/pagos')} ? 'page'"><svg th:replace="~{fragments/icons :: cash}"></svg><span th:text="#{nav.pagos}">Pagos</span></a>
+    </th:block>
+    <th:block th:unless="${me.isForeman()}">
+        <a th:href="@{/trabajador}" th:attr="aria-current=${currentPath == '/trabajador'} ? 'page'"><svg th:replace="~{fragments/icons :: home}"></svg><span th:text="#{nav.inicio}">Inicio</span></a>
+        <a th:href="@{/trabajador/asignaciones}" th:attr="aria-current=${#strings.startsWith(currentPath, '/trabajador/asignaciones')} ? 'page'"><svg th:replace="~{fragments/icons :: list}"></svg><span th:text="#{nav.mis.trabajos}">Mis trabajos</span></a>
+        <a th:href="@{/trabajador/perfil}" th:attr="aria-current=${#strings.startsWith(currentPath, '/trabajador/perfil')} ? 'page'"><svg th:replace="~{fragments/icons :: user}"></svg><span th:text="#{nav.perfil}">Perfil</span></a>
+    </th:block>
+</nav>
+
+<footer class="footer" th:text="#{layout.pie}">Jornal</footer>
+</body>
+</html>

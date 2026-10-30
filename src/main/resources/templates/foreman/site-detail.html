@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: page(${site.name()}, ~{::view}, 'page')}">
+<body>
+<th:block th:fragment="view" th:with="s=${site}">
+    <div class="page-head">
+        <div>
+            <div class="crumbs"><a th:href="@{/maestro/obras}" th:text="#{titulo.obras}">Obras</a></div>
+            <div class="cluster">
+                <h1 th:text="${s.name()}">Obra</h1>
+                <span th:replace="~{fragments/ui :: siteStatus(${s.status()}, ${s.delayed()})}"></span>
+            </div>
+            <p class="lede" th:text="${s.address()} + ', ' + ${s.neighborhood()} + ', ' + ${s.city()}">Dirección</p>
+        </div>
+        <div class="page-head-actions">
+            <a class="btn" th:if="${s.canEdit()}" th:href="@{/maestro/obras/{id}/editar(id=${s.id()})}" th:text="#{accion.editar}">Editar</a>
+            <form th:if="${s.canStart()}" class="inline-form" th:action="@{/maestro/obras/{id}/estado(id=${s.id()},action='START')}" method="post">
+                <button class="btn btn-primary" type="submit" th:text="#{obra.accion.START}">Iniciar obra</button>
+            </form>
+            <form th:if="${s.canSuspend()}" class="inline-form" th:action="@{/maestro/obras/{id}/estado(id=${s.id()},action='SUSPEND')}" method="post"
+                  th:attr="data-confirm=#{obra.suspender.pregunta}">
+                <button class="btn btn-danger" type="submit" th:text="#{obra.accion.SUSPEND}">Suspender</button>
+            </form>
+            <form th:if="${s.canResume()}" class="inline-form" th:action="@{/maestro/obras/{id}/estado(id=${s.id()},action='RESUME')}" method="post">
+                <button class="btn btn-primary" type="submit" th:text="#{obra.accion.RESUME}">Reanudar</button>
+            </form>
+            <form th:if="${s.canFinish()}" class="inline-form" th:action="@{/maestro/obras/{id}/estado(id=${s.id()},action='FINISH')}" method="post"
+                  th:attr="data-confirm=#{obra.finalizar.pregunta}">
+                <button class="btn" type="submit" th:text="#{obra.accion.FINISH}">Finalizar obra</button>
+            </form>
+            <a class="btn btn-primary" th:if="${s.canOpenFront()}" th:href="@{/maestro/obras/{id}/frentes/nuevo(id=${s.id()})}" th:text="#{frente.nuevo}">Abrir frente</a>
+        </div>
+    </div>
+
+    <div class="notice notice-info" th:if="${s.status().name() == 'PLANNED'}">
+        <svg th:replace="~{fragments/icons :: info}"></svg><p th:text="#{obra.planeada.ayuda}">Mientras la obra esté planeada puedes invitar, pero no registrar jornadas.</p>
+    </div>
+    <div class="notice notice-warning" th:if="${s.status().name() == 'SUSPENDED'}">
+        <svg th:replace="~{fragments/icons :: alert}"></svg><p th:text="#{obra.suspendida.ayuda}">Obra suspendida.</p>
+    </div>
+
+    <div class="grid grid-main">
+        <div class="stack stack-lg">
+            <section class="panel">
+                <div class="panel-head">
+                    <h2 th:text="#{obra.frentes}">Frentes de trabajo</h2>
+                    <p th:text="#{obra.frentes.ayuda}">Cada frente es una labor con su oficio, jornal y horario.</p>
+                </div>
+                <div class="table-wrap" th:if="${!#lists.isEmpty(s.fronts())}">
+                    <table class="table table-stack">
+                        <thead><tr>
+                            <th th:text="#{frente.col.labor}">Labor</th>
+                            <th th:text="#{frente.col.horario}">Horario</th>
+                            <th class="right" th:text="#{frente.col.jornal}">Jornal</th>
+                            <th th:text="#{frente.col.cupos}">Cupos</th>
+                        </tr></thead>
+                        <tbody>
+                        <tr th:each="f : ${s.fronts()}">
+                            <td class="cell-main">
+                                <a th:href="@{/maestro/frentes/{id}(id=${f.id()})}"><strong th:text="${f.task()}">Labor</strong></a>
+                                <div class="small muted" th:text="#{${'oficio.' + f.requiredTrade()}} + ', ' + ${@fmt.shortDate(f.startDate())} + ' – ' + ${@fmt.shortDate(f.endDate())}">Ayudante</div>
+                            </td>
+                            <td th:attr="data-label=#{frente.col.horario}" class="small">
+                                <span th:text="${@fmt.days(f.workDays())}">lun a vie</span><br>
+                                <span class="muted" th:text="${@fmt.time(f.startTime())} + ' – ' + ${@fmt.time(f.endTime())}">7–4</span>
+                            </td>
+                            <td class="right" th:attr="data-label=#{frente.col.jornal}"><span class="money" th:text="${@fmt.money(f.offeredDailyWage())}">$75.000</span></td>
+                            <td th:attr="data-label=#{frente.col.cupos}">
+                                <div class="small" th:text="#{frente.cupos.ocupados(${f.activeAssignments()}, ${f.openings()})}">2 de 4</div>
+                                <div class="meter" th:classappend="${f.availableOpenings() == 0} ? 'meter-full'"><div class="meter-fill" th:attr="data-size=${f.occupancyPercent()}"></div></div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="empty" th:if="${#lists.isEmpty(s.fronts())}">
+                    <strong th:text="#{obra.sin.frentes}">Esta obra no tiene frentes</strong>
+                    <span th:text="#{obra.sin.frentes.texto}">Abre un frente para invitar trabajadores.</span>
+                    <div th:if="${s.canOpenFront()}"><a class="btn btn-primary" th:href="@{/maestro/obras/{id}/frentes/nuevo(id=${s.id()})}" th:text="#{frente.nuevo}">Abrir frente</a></div>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head">
+                    <h2 th:text="#{obra.personal}">Personal de la obra</h2>
+                    <p th:text="#{obra.personal.ayuda}">Invitaciones, asignaciones en curso y finalizadas.</p>
+                </div>
+                <div class="table-wrap" th:if="${!#lists.isEmpty(s.assignments())}">
+                    <table class="table table-stack">
+                        <thead><tr>
+                            <th th:text="#{cuadrilla.col.trabajador}">Trabajador</th>
+                            <th th:text="#{cuadrilla.col.estado}">Estado</th>
+                            <th class="right" th:text="#{cuadrilla.col.devengado}">Devengado</th>
+                            <th class="right" th:text="#{cuadrilla.col.saldo}">Saldo</th>
+                        </tr></thead>
+                        <tbody>
+                        <tr th:each="r : ${s.assignments()}">
+                            <td class="cell-main">
+                                <a class="person" th:href="@{/maestro/asignaciones/{id}(id=${r.id()})}">
+                                    <span class="avatar" th:text="${r.workerInitials()}">YQ</span>
+                                    <span class="person-text"><strong th:text="${r.workerName()}">Nombre</strong><span th:text="${r.frontTask()}">Frente</span></span>
+                                </a>
+                            </td>
+                            <td><span th:replace="~{fragments/ui :: assignmentStatus(${r.status()})}"></span></td>
+                            <td class="right" th:attr="data-label=#{cuadrilla.col.devengado}"><span class="money" th:text="${@fmt.money(r.earnedTotal())}">$0</span></td>
+                            <td class="right" th:attr="data-label=#{cuadrilla.col.saldo}"><span class="money" th:text="${@fmt.money(r.balance())}">$0</span></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="empty" th:if="${#lists.isEmpty(s.assignments())}" th:text="#{obra.sin.personal}">Nadie asignado todavía.</p>
+            </section>
+        </div>
+
+        <aside class="stack stack-lg">
+            <section class="panel panel-accent">
+                <div class="panel-body stack">
+                    <div>
+                        <span class="muted small" th:text="#{obra.costo}">Costo de mano de obra</span>
+                        <div class="money-lg" th:text="${@fmt.money(s.laborCost())}">$0</div>
+                    </div>
+                    <dl class="facts">
+                        <dt th:text="#{obra.inicio}">Inicio</dt><dd th:text="${@fmt.date(s.startDate())}">fecha</dd>
+                        <dt th:text="#{obra.fin.estimado}">Fin estimado</dt><dd th:text="${@fmt.date(s.estimatedEndDate())}">fecha</dd>
+                        <dt th:text="#{obra.licencia}">Licencia</dt><dd th:text="${s.buildingPermit() ?: #messages.msg('obra.sin.licencia')}">54001</dd>
+                        <dt th:text="#{obra.en.curso}">Trabajando</dt><dd th:text="${s.workersInProgress()}">3</dd>
+                    </dl>
+                    <p class="muted small" th:if="${s.description() != null}" th:text="${s.description()}">Descripción</p>
+                </div>
+            </section>
+        </aside>
+    </div>
+</th:block>
+</body>
+</html>

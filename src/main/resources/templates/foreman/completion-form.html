@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: page(#{asignacion.finalizar}, ~{::view}, 'page page-narrow')}">
+<body>
+<th:block th:fragment="view">
+    <div class="page-head">
+        <div>
+            <div class="crumbs"><a th:href="@{/maestro/asignaciones/{id}(id=${a.id()})}" th:text="${a.workerName()}">Trabajador</a></div>
+            <h1 th:text="#{asignacion.finalizar}">Finalizar asignación</h1>
+            <p class="lede" th:text="#{asignacion.finalizar.lede(${a.workerName()}, ${a.workedDays()}, ${@fmt.money(a.paidTotal())})}">Texto</p>
+        </div>
+    </div>
+    <form class="panel" th:object="${form}" th:action="@{/maestro/asignaciones/{id}/finalizar(id=${a.id()})}" method="post" novalidate>
+        <div class="panel-body form">
+            <div th:replace="~{fragments/ui :: globalErrors}"></div>
+            <div class="field">
+                <span class="label" th:text="#{calificacion.pregunta.trabajador(${a.workerName()})}">¿Cómo trabajó?</span>
+                <div class="stars">
+                    <th:block th:each="n : ${#numbers.sequence(5, 1)}">
+                        <input type="radio" th:field="*{rating}" th:value="${n}">
+                        <label th:for="${#ids.prev('rating')}" th:title="#{calificacion.estrellas(${n})}">
+                            <svg th:replace="~{fragments/icons :: star}"></svg><span class="sr-only" th:text="#{calificacion.estrellas(${n})}">5</span>
+                        </label>
+                    </th:block>
+                </div>
+                <p class="field-error" th:if="${#fields.hasErrors('rating')}" th:errors="*{rating}"></p>
+            </div>
+            <div class="field">
+                <label for="comment" th:text="#{campo.comentario}">Comentario</label>
+                <textarea th:field="*{comment}" rows="3" maxlength="300" th:placeholder="#{campo.comentario.pista}"></textarea>
+            </div>
+        </div>
+        <div class="panel-foot split">
+            <a class="btn btn-quiet" th:href="@{/maestro/asignaciones/{id}(id=${a.id()})}" th:text="#{accion.cancelar}">Cancelar</a>
+            <button class="btn btn-ok" type="submit" th:text="#{asignacion.finalizar}">Finalizar</button>
+        </div>
+    </form>
+</th:block>
+</body>
+</html>

@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: page(#{recibo.titulo(${receipt.receiptNumber()})}, ~{::view}, 'page')}">
+<body>
+<th:block th:fragment="view" th:with="r=${receipt},foreman=${me.isForeman()}">
+    <div class="page-head no-print">
+        <div>
+            <div class="crumbs">
+                <a th:href="${foreman} ? @{/maestro/asignaciones/{id}(id=${r.assignmentId()})} : @{/trabajador/asignaciones/{id}(id=${r.assignmentId()})}"
+                   th:text="${foreman} ? ${r.workerName()} : ${r.siteName()}">Volver</a>
+            </div>
+            <h1 th:text="#{recibo.comprobante}">Comprobante de pago</h1>
+        </div>
+        <div class="page-head-actions">
+            <button class="btn" type="button" data-print hidden th:text="#{recibo.imprimir}">Imprimir o guardar PDF</button>
+        </div>
+    </div>
+
+    <article class="receipt">
+        <header class="receipt-head">
+            <div>
+                <a class="brand" th:href="@{/}"><svg th:replace="~{fragments/icons :: mark}"></svg><span class="brand-name">Jornal</span></a>
+                <p class="small muted" th:text="#{${'pago.tipo.' + r.type()}}">Liquidación</p>
+            </div>
+            <div class="right">
+                <div class="receipt-number" th:text="${r.receiptNumber()}">JOR-000012</div>
+                <div class="small muted" th:text="${@fmt.dateTime(r.paidAt())}">fecha</div>
+            </div>
+        </header>
+
+        <div class="receipt-amount">
+            <div>
+                <span class="muted small" th:text="#{recibo.valor}">Valor pagado</span>
+                <div class="money-xl" th:text="${@fmt.money(r.amount())}">$437.500</div>
+            </div>
+            <span class="stamp" th:classappend="${r.status().name() == 'CONFIRMED'} ? 'stamp-ok' : (${r.status().name() == 'CANCELLED'} ? 'stamp-bad' : 'stamp-wait')"
+                  th:text="#{${'recibo.sello.' + r.status()}}">Recibido</span>
+        </div>
+        <p class="receipt-words"><span th:text="#{recibo.son}">Son:</span> <strong th:text="${r.amountInWords()} + ' ' + #{recibo.mcte}">cuatrocientos mil pesos</strong></p>
+
+        <dl class="facts">
+            <dt th:text="#{recibo.pagado.a}">Pagado a</dt>
+            <dd th:text="${r.workerName()} + ', ' + #{${'documento.' + r.workerDocumentType()}} + ' ' + ${r.workerDocumentNumber()}">Yeison</dd>
+            <dt th:text="#{recibo.pagado.por}">Pagado por</dt>
+            <dd th:text="${r.foremanName()} + (${r.foremanCompany() != null} ? ' (' + ${r.foremanCompany()} + ')' : '') + ', ' + #{${'documento.' + r.foremanDocumentType()}} + ' ' + ${r.foremanDocumentNumber()}">Carlos</dd>
+            <dt th:text="#{recibo.obra}">Obra</dt>
+            <dd th:text="${r.siteName()} + ', ' + ${r.siteAddress()} + ', ' + ${r.siteCity()}">Obra</dd>
+            <dt th:text="#{recibo.labor}">Labor</dt>
+            <dd th:text="${r.frontTask()} + ', ' + #{recibo.jornal(${@fmt.money(r.dailyWage())})}">Labor</dd>
+            <dt th:text="#{campo.medio.pago}">Medio de pago</dt>
+            <dd th:text="#{${'medio.' + r.method()}} + (${r.transactionReference() != null} ? ', ' + #{recibo.operacion(${r.transactionReference()})} : '')">Efectivo</dd>
+            <th:block th:if="${r.reason() != null}">
+                <dt th:text="#{campo.motivo}">Motivo</dt><dd th:text="${r.reason()}">motivo</dd>
+            </th:block>
+        </dl>
+
+        <!--/* Desglose de la liquidacion: asi se verifica el neto a mano. */-->
+        <div class="ledger" th:if="${r.isSettlement()}">
+            <div class="ledger-row"><span th:text="#{recibo.periodo}">Periodo</span>
+                <span th:text="${@fmt.date(r.periodStart())} + ' – ' + ${@fmt.date(r.periodEnd())}">fechas</span></div>
+            <div class="ledger-row"><span th:text="#{recibo.jornadas}">Jornadas en el periodo</span><span th:text="${r.daysInPeriod()}">10</span></div>
+            <div class="ledger-row"><span th:text="#{pago.devengado.periodo}">Devengado</span><span class="money" th:text="${@fmt.money(r.earnedInPeriod())}">$0</span></div>
+            <div class="ledger-row"><span th:text="#{pago.descuento.anticipos}">Menos anticipos</span><span class="money" th:text="'− ' + ${@fmt.money(r.discountedAdvances())}">$0</span></div>
+            <div class="ledger-row ledger-total"><span th:text="#{recibo.neto}">Neto pagado</span><span class="money" th:text="${@fmt.money(r.amount())}">$0</span></div>
+        </div>
+
+        <p class="small muted" th:if="${r.confirmedAt() != null}" th:text="#{recibo.confirmado(${@fmt.dateTime(r.confirmedAt())})}">Confirmado</p>
+        <p class="small field-error" th:if="${r.cancelledAt() != null}" th:text="#{recibo.anulado(${@fmt.dateTime(r.cancelledAt())}, ${r.cancellationReason()})}">Anulado</p>
+
+        <div class="signatures">
+            <div th:text="#{recibo.firma.maestro}">Firma de quien paga</div>
+            <div th:text="#{recibo.firma.trabajador}">Firma de quien recibe</div>
+        </div>
+    </article>
+
+    <!--/* Acciones bajo el comprobante, nunca impresas. */-->
+    <div class="no-print cluster" th:with="cancellable=${foreman and r.status().name() == 'PENDING'}">
+        <details class="rel" th:if="${cancellable and reasonForm != null}">
+            <summary class="btn btn-danger" th:text="#{pago.anular}">Anular pago</summary>
+            <form class="popover form" th:action="@{/maestro/pagos/{id}/anular(id=${r.paymentId()})}" method="post" th:object="${reasonForm}">
+                <p class="small muted" th:text="#{pago.anular.ayuda}">Solo si el pago no se entregó.</p>
+                <div class="field">
+                    <label for="reason" th:text="#{campo.motivo}">Motivo</label>
+                    <textarea th:field="*{reason}" rows="3" required minlength="5" maxlength="300"></textarea>
+                </div>
+                <button class="btn btn-danger btn-block" type="submit" th:text="#{pago.anular}">Anular pago</button>
+            </form>
+        </details>
+        <form th:if="${!foreman and r.status().name() == 'PENDING'}" class="inline-form"
+              th:action="@{/trabajador/pagos/{id}/confirmar(id=${r.paymentId()})}" method="post"
+              th:attr="data-confirm=#{pago.confirmar.pregunta(${@fmt.money(r.amount())})}">
+            <button class="btn btn-ok btn-lg" type="submit" th:text="#{pago.confirmar.recibido}">Confirmo que lo recibí</button>
+        </form>
+    </div>
+</th:block>
+</body>
+</html>

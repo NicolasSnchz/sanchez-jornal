@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: page(${a.siteName()}, ~{::view}, 'page')}">
+<body>
+<th:block th:fragment="view">
+    <div class="page-head">
+        <div>
+            <div class="crumbs"><a th:href="@{/trabajador/asignaciones}" th:text="#{nav.mis.trabajos}">Mis trabajos</a></div>
+            <div class="cluster">
+                <h1 th:text="${a.siteName()}">Obra</h1>
+                <span th:replace="~{fragments/ui :: assignmentStatus(${a.status()})}"></span>
+            </div>
+            <p class="lede" th:text="${a.frontTask()} + ', ' + ${a.siteAddress()} + ', ' + ${a.siteNeighborhood()}">Frente</p>
+        </div>
+    </div>
+
+    <!--/* Invitacion: todo lo que necesita para decidir, y dos botones claros. */-->
+    <section class="panel panel-accent" th:if="${a.canRespond()}">
+        <div class="panel-head">
+            <h2 th:text="#{invitacion.de(${a.foremanName()})}">Invitación de Carlos</h2>
+            <p th:text="#{invitacion.recibida(${@fmt.dateTime(a.invitedAt())})}">Recibida</p>
+        </div>
+        <div class="panel-body stack">
+            <dl class="facts">
+                <dt th:text="#{asignacion.jornal.pactado}">Jornal</dt><dd class="money-lg" th:text="${@fmt.money(a.dailyWage())}">$75.000</dd>
+                <dt th:text="#{trabajador.horario}">Horario</dt><dd th:text="${@fmt.days(a.scheduleDays())} + ', ' + ${@fmt.time(a.startTime())} + ' – ' + ${@fmt.time(a.endTime())}">horario</dd>
+                <dt th:text="#{trabajador.periodo}">Periodo</dt><dd th:text="${@fmt.date(a.startDate())} + ' – ' + ${@fmt.date(a.frontEndDate())}">fechas</dd>
+                <dt th:text="#{frente.valor.extra}">Hora extra</dt><dd class="money" th:text="${@fmt.money(a.overtimeRate())}">$11.719</dd>
+                <dt th:text="#{trabajador.maestro}">Maestro</dt><dd th:text="${a.foremanName()} + (${a.foremanCompany() != null} ? ', ' + ${a.foremanCompany()} : '')">Carlos</dd>
+            </dl>
+            <div class="cluster">
+                <form class="inline-form" th:action="@{/trabajador/asignaciones/{id}/respuesta(id=${a.id()},aceptar=true)}" method="post">
+                    <button class="btn btn-ok btn-lg" type="submit" th:text="#{invitacion.aceptar}">Aceptar</button>
+                </form>
+                <form class="inline-form" th:action="@{/trabajador/asignaciones/{id}/respuesta(id=${a.id()},aceptar=false)}" method="post"
+                      th:attr="data-confirm=#{invitacion.rechazar.pregunta}">
+                    <button class="btn btn-lg" type="submit" th:text="#{invitacion.rechazar}">Rechazar</button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <div class="grid grid-main" th:unless="${a.canRespond()}">
+        <div class="stack stack-lg">
+            <div class="notice notice-info" th:if="${a.pendingDays() > 0}">
+                <svg th:replace="~{fragments/icons :: info}"></svg>
+                <div class="split">
+                    <p th:text="#{trabajador.aviso.confirmar(${a.pendingDays()})}">Tienes jornadas por confirmar.</p>
+                    <form class="inline-form" th:action="@{/trabajador/asignaciones/{id}/confirmar-pendientes(id=${a.id()})}" method="post"
+                          th:attr="data-confirm=#{trabajador.confirmar.todas.pregunta}">
+                        <button class="btn btn-sm btn-ok" type="submit" th:text="#{trabajador.confirmar.todas}">Confirmar todas</button>
+                    </form>
+                </div>
+            </div>
+
+            <section th:replace="~{fragments/ui :: planilla(${a}, 'WORKER')}"></section>
+
+            <!--/* Jornadas por confirmar: aqui el trabajador puede objetar con su motivo. */-->
+            <section class="panel" id="jornadas" th:if="${!#lists.isEmpty(a.workDays())}">
+                <div class="panel-head">
+                    <h2 th:text="#{jornadas.historial}">Todas las jornadas</h2>
+                    <p th:text="#{jornadas.resumen(${a.workedDays()}, ${a.pendingDays()}, ${a.disputedDays()})}">resumen</p>
+                </div>
+                <ul class="todo">
+                    <li th:each="d : ${a.workDays()}"
+                        th:class="${d.status().name() == 'CONFIRMED'} ? 'k-neutral' : (${d.status().name() == 'DISPUTED'} ? 'k-danger' : 'k-warning')">
+                        <div class="text">
+                            <strong th:text="${@fmt.weekdayDate(d.date())} + ': ' + ${@fmt.time(d.checkInTime())} + ' – ' + ${@fmt.time(d.checkOutTime())}">lun</strong>
+                            <small class="muted" th:text="${@fmt.duration(d.workedMinutes())} + ', ' + ${@fmt.money(d.value())} + ', ' + ${d.taskPerformed()}">8 h</small>
+                            <p th:if="${d.disputeReason() != null}" th:text="#{jornadas.objecion(${d.disputeReason()})}">Objeción</p>
+                        </div>
+                        <div class="row-actions">
+                            <span th:replace="~{fragments/ui :: dayStatus(${d.status()})}"></span>
+                            <th:block th:if="${d.status().name() == 'PENDING'}">
+                                <form class="inline-form" th:action="@{/trabajador/jornadas/{id}/confirmar(id=${d.id()})}" method="post">
+                                    <button class="btn btn-sm btn-ok" type="submit" th:text="#{accion.confirmar}">Confirmar</button>
+                                </form>
+                                <details class="rel">
+                                    <summary class="btn btn-sm btn-danger" th:text="#{accion.objetar}">Objetar</summary>
+                                    <form class="popover form" th:action="@{/trabajador/jornadas/{id}/objetar(id=${d.id()})}" method="post" th:object="${reasonForm}">
+                                        <input type="hidden" name="asignacion" th:value="${a.id()}">
+                                        <div class="field">
+                                            <label th:for="${'reason-' + d.id()}" th:text="#{jornada.objetar.pregunta}">¿Qué no es correcto?</label>
+                                            <textarea th:id="${'reason-' + d.id()}" name="reason" rows="3" required minlength="5" maxlength="300"
+                                                      th:placeholder="#{jornada.objetar.ejemplo}"></textarea>
+                                        </div>
+                                        <button class="btn btn-danger btn-block" type="submit" th:text="#{jornada.objetar.enviar}">Enviar objeción</button>
+                                    </form>
+                                </details>
+                            </th:block>
+                        </div>
+                    </li>
+                </ul>
+            </section>
+
+            <section th:replace="~{fragments/ui :: payments(${a}, 'WORKER')}"></section>
+        </div>
+
+        <aside class="stack stack-lg">
+            <section th:replace="~{fragments/ui :: ledger(${a})}"></section>
+
+            <section class="panel" id="calificar" th:if="${a.canRateForeman()}">
+                <div class="panel-head"><h2 th:text="#{calificacion.titulo.maestro}">Califica al maestro</h2></div>
+                <form class="panel-body form" th:action="@{/trabajador/asignaciones/{id}/calificar(id=${a.id()})}" method="post" th:object="${ratingForm}">
+                    <span class="label" th:text="#{calificacion.pregunta.maestro(${a.foremanName()})}">¿Cómo te trató?</span>
+                    <div class="stars">
+                        <th:block th:each="n : ${#numbers.sequence(5, 1)}">
+                            <input type="radio" th:field="*{rating}" th:value="${n}">
+                            <label th:for="${#ids.prev('rating')}" th:title="#{calificacion.estrellas(${n})}">
+                                <svg th:replace="~{fragments/icons :: star}"></svg><span class="sr-only" th:text="#{calificacion.estrellas(${n})}">5</span>
+                            </label>
+                        </th:block>
+                    </div>
+                    <button class="btn btn-primary" type="submit" th:text="#{calificacion.enviar}">Enviar calificación</button>
+                </form>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head"><h2 th:text="#{trabajador.datos.trabajo}">Datos del trabajo</h2></div>
+                <div class="panel-body">
+                    <dl class="facts">
+                        <dt th:text="#{trabajador.maestro}">Maestro</dt><dd th:text="${a.foremanName()}">Carlos</dd>
+                        <dt th:text="#{campo.celular}">Celular</dt><dd><a th:href="'tel:' + ${a.foremanPhone()}" th:text="${a.foremanPhone()}">315</a></dd>
+                        <dt th:text="#{asignacion.jornal.pactado}">Jornal</dt><dd class="money" th:text="${@fmt.money(a.dailyWage())}">$75.000</dd>
+                        <dt th:text="#{frente.valor.hora}">Hora ordinaria</dt><dd class="money" th:text="${@fmt.money(a.hourlyRate())}">$9.375</dd>
+                        <dt th:text="#{frente.valor.extra}">Hora extra</dt><dd class="money" th:text="${@fmt.money(a.overtimeRate())}">$11.719</dd>
+                        <dt th:text="#{trabajador.periodo}">Periodo</dt><dd th:text="${@fmt.date(a.startDate())} + ' – ' + ${@fmt.date(a.actualEndDate() ?: a.frontEndDate())}">fechas</dd>
+                        <th:block th:if="${a.workerRating() != null}">
+                            <dt th:text="#{calificacion.recibida}">Te calificó</dt>
+                            <dd><span th:replace="~{fragments/ui :: rating(${a.workerRating().doubleValue()}, 1)}"></span>
+                                <div class="small muted" th:if="${a.workerRatingComment() != null}" th:text="'“' + ${a.workerRatingComment()} + '”'">comentario</div></dd>
+                        </th:block>
+                    </dl>
+                </div>
+            </section>
+        </aside>
+    </div>
+</th:block>
+</body>
+</html>

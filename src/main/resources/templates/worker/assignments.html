@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: page(#{nav.mis.trabajos}, ~{::view}, 'page page-narrow')}">
+<body>
+<th:block th:fragment="view">
+    <div class="page-head">
+        <div>
+            <h1 th:text="#{nav.mis.trabajos}">Mis trabajos</h1>
+            <p class="lede" th:text="#{trabajador.historial.lede}">Invitaciones, trabajos en curso y terminados.</p>
+        </div>
+    </div>
+    <section class="panel">
+        <ul class="todo" th:if="${!#lists.isEmpty(assignments)}">
+            <li th:each="r : ${assignments}"
+                th:class="${r.status().name() == 'IN_PROGRESS'} ? 'k-info' : (${r.status().name() == 'INVITED'} ? 'k-warning' : 'k-neutral')">
+                <div class="text">
+                    <a th:href="@{/trabajador/asignaciones/{id}(id=${r.id()})}"><strong th:text="${r.siteName()}">Obra</strong></a>
+                    <small class="muted" th:text="${r.frontTask()} + ', ' + ${r.foremanName()}">Frente</small><br>
+                    <small class="muted" th:text="#{trabajador.historial.detalle(${@fmt.date(r.startDate())}, ${r.workedDays()}, ${@fmt.money(r.earnedTotal())})}">Desde ...</small>
+                </div>
+                <span th:replace="~{fragments/ui :: assignmentStatus(${r.status()})}"></span>
+            </li>
+        </ul>
+        <div class="empty" th:if="${#lists.isEmpty(assignments)}">
+            <strong th:text="#{trabajador.historial.vacio}">Aún no tienes trabajos</strong>
+            <span th:text="#{trabajador.historial.vacio.texto}">Cuando un maestro te invite, aparecerá aquí.</span>
+        </div>
+    </section>
+</th:block>
+</body>
+</html>

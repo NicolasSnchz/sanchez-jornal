@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: page(#{titulo.panel}, ~{::view}, 'page')}">
+<body>
+<th:block th:fragment="view" th:with="d=${dashboard}">
+    <div class="page-head">
+        <div>
+            <h1 th:text="#{panel.saludo(${d.firstName()})}">Hola, Carlos</h1>
+            <p class="lede" th:text="#{panel.maestro.lede(${@fmt.longDay(today)})}">Jueves 29 de octubre</p>
+        </div>
+        <div class="page-head-actions">
+            <a class="btn" th:href="@{/maestro/cuadrilla}" th:text="#{panel.ver.cuadrilla}">Ver cuadrilla</a>
+            <a class="btn btn-primary" th:href="@{/maestro/obras/nueva}" th:text="#{obra.nueva}">Nueva obra</a>
+        </div>
+    </div>
+
+    <div class="stack stack-lg">
+        <section class="board" th:aria-label="#{panel.resumen}">
+            <div class="board-cell">
+                <span class="label" th:text="#{panel.obras.en.curso}">Obras en curso</span>
+                <span class="value" th:text="${d.activeSites()}">2</span>
+                <span class="detail detail-warn" th:if="${d.delayedSites() > 0}" th:text="#{panel.obras.retrasadas(${d.delayedSites()})}">1 retrasada</span>
+                <span class="detail" th:if="${d.delayedSites() == 0}" th:text="#{panel.obras.al.dia}">Todas dentro del plazo</span>
+            </div>
+            <div class="board-cell">
+                <span class="label" th:text="#{panel.trabajadores}">Trabajadores en obra</span>
+                <span class="value" th:text="${d.workersInProgress()}">3</span>
+                <span class="detail" th:text="#{panel.trabajadores.detalle(${d.sitesWithWorkers()})}">en 1 obra</span>
+            </div>
+            <div class="board-cell">
+                <span class="label" th:text="#{panel.pagado.mes(${@fmt.monthName(d.month())})}">Pagado en octubre</span>
+                <span class="value" th:text="${@fmt.money(d.monthSpending())}">$0</span>
+                <span class="detail" th:text="#{panel.pagos.detalle(${d.monthPaymentsCount()})}">0 pagos</span>
+            </div>
+            <div class="board-cell">
+                <span class="label" th:text="#{panel.calificacion}">Tu calificación</span>
+                <span class="value" th:text="${d.rating() != null} ? ${#numbers.formatDecimal(d.rating(), 1, 1, 'COMMA')} : '—'">4,5</span>
+                <span class="detail" th:text="#{panel.calificacion.detalle(${d.ratingCount()})}">de 2 trabajadores</span>
+            </div>
+        </section>
+
+        <div class="grid grid-main">
+            <div class="stack stack-lg">
+                <section class="panel">
+                    <div class="panel-head">
+                        <h2 th:text="#{panel.pendientes}">Para resolver</h2>
+                        <p th:text="#{panel.pendientes.maestro.ayuda}">Lo que frena un pago o una jornada.</p>
+                    </div>
+                    <div th:replace="~{fragments/ui :: todo(${d.pending()})}"></div>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-head">
+                        <h2 th:text="#{panel.costo.semanal}">Mano de obra por semana</h2>
+                        <p th:text="#{panel.costo.semanal.ayuda}">Lo devengado en jornadas registradas.</p>
+                    </div>
+                    <div class="bars" role="img" th:aria-label="#{panel.costo.semanal}">
+                        <div class="bar-col" th:each="w, it : ${d.weeklyCost()}" th:classappend="${it.last} ? 'is-current'">
+                            <span class="bar-value" th:text="${w.total().signum() > 0} ? ${@fmt.money(w.total())} : ''">$0</span>
+                            <div class="bar-track"><span class="bar-fill" data-axis="y" th:attr="data-size=${w.percentOfMax()}"></span></div>
+                            <span class="bar-label" th:text="${it.last} ? #{panel.esta.semana} : ${@fmt.shortDate(w.weekStart())}">26 oct</span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <aside class="stack stack-lg">
+                <section class="panel">
+                    <div class="panel-head">
+                        <h2 th:text="#{panel.obras.en.curso}">Obras en curso</h2>
+                        <a class="btn btn-sm btn-quiet" th:href="@{/maestro/obras}" th:text="#{accion.ver.todas}">Ver todas</a>
+                    </div>
+                    <ul class="todo" th:if="${!#lists.isEmpty(d.sitesInProgress())}">
+                        <li th:each="s : ${d.sitesInProgress()}" class="k-info">
+                            <div class="text">
+                                <a th:href="@{/maestro/obras/{id}(id=${s.id()})}"><strong th:text="${s.name()}">Obra</strong></a>
+                                <small class="muted" th:text="#{panel.obra.resumen(${s.workersInProgress()}, ${@fmt.money(s.laborCost())})}">3 trabajadores</small>
+                            </div>
+                            <span th:replace="~{fragments/ui :: siteStatus(${s.status()}, ${s.delayed()})}"></span>
+                        </li>
+                    </ul>
+                    <div class="empty" th:if="${#lists.isEmpty(d.sitesInProgress())}">
+                        <strong th:text="#{panel.sin.obras}">No tienes obras en curso</strong>
+                        <span th:text="#{panel.sin.obras.texto}">Crea una obra y ábrele un frente.</span>
+                        <div><a class="btn btn-primary" th:href="@{/maestro/obras/nueva}" th:text="#{obra.nueva}">Nueva obra</a></div>
+                    </div>
+                </section>
+
+                <section class="panel">
+                    <div class="panel-head">
+                        <h2 th:text="#{panel.ultimos.pagos}">Últimos pagos</h2>
+                        <a class="btn btn-sm btn-quiet" th:href="@{/maestro/pagos}" th:text="#{accion.ver.todos}">Ver todos</a>
+                    </div>
+                    <ul class="todo" th:if="${!#lists.isEmpty(d.recentPayments())}">
+                        <li th:each="p : ${d.recentPayments()}" th:class="${p.status().name() == 'CONFIRMED'} ? 'k-neutral' : 'k-warning'">
+                            <div class="text">
+                                <a th:href="@{/maestro/pagos/{id}/comprobante(id=${p.id()})}"><strong th:text="${p.workerName()}">Trabajador</strong></a>
+                                <small class="muted" th:text="#{${'pago.tipo.' + p.type()}} + ', ' + ${@fmt.shortDate(p.paidAt().toLocalDate())}">Liquidación</small>
+                            </div>
+                            <span class="money" th:text="${@fmt.money(p.amount())}">$0</span>
+                        </li>
+                    </ul>
+                    <p class="empty" th:if="${#lists.isEmpty(d.recentPayments())}" th:text="#{panel.sin.pagos}">Sin pagos este mes.</p>
+                </section>
+            </aside>
+        </div>
+    </div>
+</th:block>
+</body>
+</html>

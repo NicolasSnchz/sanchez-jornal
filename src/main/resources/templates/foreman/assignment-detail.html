@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: page(${a.workerName()}, ~{::view}, 'page')}">
+<body>
+<th:block th:fragment="view">
+    <div class="page-head">
+        <div>
+            <div class="crumbs">
+                <a th:href="@{/maestro/obras/{id}(id=${a.siteId()})}" th:text="${a.siteName()}">Obra</a><span aria-hidden="true">/</span>
+                <a th:href="@{/maestro/frentes/{id}(id=${a.frontId()})}" th:text="${a.frontTask()}">Frente</a>
+            </div>
+            <div class="cluster">
+                <span class="avatar avatar-lg" th:text="${a.workerInitials()}">YQ</span>
+                <div>
+                    <div class="cluster">
+                        <h1 th:text="${a.workerName()}">Nombre</h1>
+                        <span th:replace="~{fragments/ui :: assignmentStatus(${a.status()})}"></span>
+                    </div>
+                    <p class="muted" th:text="#{asignacion.subtitulo(#{${'oficio.' + a.workerTrade()}}, ${@fmt.money(a.dailyWage())}, ${@fmt.date(a.startDate())})}">Ayudante</p>
+                </div>
+            </div>
+        </div>
+        <div class="page-head-actions">
+            <a class="btn btn-primary" th:if="${a.canRegisterWorkDay()}" th:href="@{/maestro/asignaciones/{id}/jornadas/nueva(id=${a.id()})}" th:text="#{jornada.registrar}">Registrar jornada</a>
+            <a class="btn btn-ok" th:if="${a.canComplete()}" th:href="@{/maestro/asignaciones/{id}/finalizar(id=${a.id()})}" th:text="#{asignacion.finalizar}">Finalizar</a>
+        </div>
+    </div>
+
+    <div class="notice notice-warning" th:if="${a.disputedDays() > 0}">
+        <svg th:replace="~{fragments/icons :: alert}"></svg>
+        <p th:text="#{asignacion.aviso.objetadas(${a.disputedDays()})}">Hay jornadas objetadas.</p>
+    </div>
+    <div class="notice notice-info" th:if="${a.status().name() == 'INVITED'}">
+        <svg th:replace="~{fragments/icons :: info}"></svg>
+        <p th:text="#{asignacion.aviso.invitado(${@fmt.dateTime(a.invitedAt())})}">Esperando respuesta.</p>
+    </div>
+    <div class="notice notice-info" th:if="${a.finalSettled() and a.status().name() == 'IN_PROGRESS'}">
+        <svg th:replace="~{fragments/icons :: info}"></svg>
+        <p th:text="#{asignacion.aviso.liquidada}">Liquidación final hecha.</p>
+    </div>
+
+    <div class="grid grid-main">
+        <div class="stack stack-lg">
+            <section th:replace="~{fragments/ui :: planilla(${a}, 'FOREMAN')}"></section>
+
+            <section class="panel" th:if="${!#lists.isEmpty(a.workDays())}">
+                <div class="panel-head">
+                    <h2 th:text="#{jornadas.historial}">Todas las jornadas</h2>
+                    <p th:text="#{jornadas.resumen(${a.workedDays()}, ${a.pendingDays()}, ${a.disputedDays()})}">resumen</p>
+                </div>
+                <div class="table-wrap">
+                    <table class="table table-stack">
+                        <thead><tr>
+                            <th th:text="#{jornadas.col.fecha}">Fecha</th>
+                            <th th:text="#{jornadas.col.horario}">Horario</th>
+                            <th th:text="#{jornadas.col.labor}">Labor</th>
+                            <th class="right" th:text="#{jornadas.col.valor}">Valor</th>
+                            <th th:text="#{jornadas.col.estado}">Estado</th>
+                        </tr></thead>
+                        <tbody>
+                        <tr th:each="d : ${a.workDays()}">
+                            <td class="cell-main">
+                                <strong th:text="${@fmt.weekdayDate(d.date())}">lun 26 oct</strong>
+                                <a th:if="${d.editable()}" class="small" th:href="@{/maestro/jornadas/{id}/editar(id=${d.id()})}" th:text="#{accion.corregir}">Corregir</a>
+                            </td>
+                            <td th:attr="data-label=#{jornadas.col.horario}" class="small">
+                                <span th:text="${@fmt.time(d.checkInTime())} + ' – ' + ${@fmt.time(d.checkOutTime())}">7–4</span>
+                                <span class="muted" th:text="'(' + ${@fmt.duration(d.workedMinutes())} + ')'">(8 h)</span>
+                            </td>
+                            <td th:attr="data-label=#{jornadas.col.labor}" class="small">
+                                <span th:text="${d.taskPerformed()}">Labor</span>
+                                <div class="muted" th:if="${d.notes() != null}" th:text="${d.notes()}">Notas</div>
+                                <div class="field-error" th:if="${d.disputeReason() != null}" th:text="#{jornadas.objecion(${d.disputeReason()})}">Objeción</div>
+                            </td>
+                            <td class="right" th:attr="data-label=#{jornadas.col.valor}"><span class="money" th:text="${@fmt.money(d.value())}">$0</span></td>
+                            <td><span th:replace="~{fragments/ui :: dayStatus(${d.status()})}"></span></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section th:replace="~{fragments/ui :: payments(${a}, 'FOREMAN')}"></section>
+        </div>
+
+        <aside class="stack stack-lg">
+            <section th:replace="~{fragments/ui :: ledger(${a})}"></section>
+
+            <section class="panel" th:if="${a.canRegisterAdvance() or a.canSettlePeriod() or a.canFinalSettle()}">
+                <div class="panel-head"><h2 th:text="#{pago.registrar}">Registrar un pago</h2></div>
+                <div class="panel-body stack stack-sm">
+                    <a class="btn btn-block" th:if="${a.canRegisterAdvance()}" th:href="@{/maestro/asignaciones/{id}/pagos/nuevo(id=${a.id()},tipo='ADVANCE')}" th:text="#{pago.tipo.ADVANCE}">Anticipo</a>
+                    <a class="btn btn-block" th:if="${a.canSettlePeriod()}" th:href="@{/maestro/asignaciones/{id}/pagos/nuevo(id=${a.id()},tipo='SETTLEMENT')}" th:text="#{pago.tipo.SETTLEMENT}">Liquidar periodo</a>
+                    <a class="btn btn-block btn-primary" th:if="${a.canFinalSettle()}" th:href="@{/maestro/asignaciones/{id}/pagos/nuevo(id=${a.id()},tipo='FINAL_SETTLEMENT')}" th:text="#{pago.tipo.FINAL_SETTLEMENT}">Liquidación final</a>
+                    <p class="muted small" th:text="#{pago.ayuda.tipos}">Explicación de tipos</p>
+                </div>
+            </section>
+
+            <section class="panel">
+                <div class="panel-head"><h2 th:text="#{asignacion.trabajador}">Trabajador</h2></div>
+                <div class="panel-body">
+                    <dl class="facts">
+                        <dt th:text="#{campo.celular}">Celular</dt><dd><a th:href="'tel:' + ${a.workerPhone()}" th:text="${a.workerPhone()}">300</a></dd>
+                        <dt th:text="#{campo.telefono.emergencia}">Emergencia</dt><dd th:text="${a.workerEmergencyPhone()}">300</dd>
+                        <dt th:text="#{campo.experiencia}">Experiencia</dt><dd th:text="#{candidatos.anios(${a.workerYearsOfExperience()})}">4 años</dd>
+                        <dt th:text="#{campo.arl}">ARL hasta</dt><dd th:text="${@fmt.date(a.workerArlValidUntil())}">fecha</dd>
+                        <dt th:text="#{asignacion.jornal.pactado}">Jornal pactado</dt><dd class="money" th:text="${@fmt.money(a.dailyWage())}">$75.000</dd>
+                        <dt th:text="#{frente.valor.hora}">Hora ordinaria</dt><dd class="money" th:text="${@fmt.money(a.hourlyRate())}">$9.375</dd>
+                        <dt th:text="#{frente.valor.extra}">Hora extra</dt><dd class="money" th:text="${@fmt.money(a.overtimeRate())}">$11.719</dd>
+                        <th:block th:if="${a.workerRating() != null}">
+                            <dt th:text="#{asignacion.calificacion.dada}">Tu calificación</dt>
+                            <dd><span th:replace="~{fragments/ui :: rating(${a.workerRating().doubleValue()}, 1)}"></span></dd>
+                        </th:block>
+                    </dl>
+                </div>
+                <div class="panel-foot" th:if="${a.canCancel()}">
+                    <details class="rel">
+                        <summary class="btn btn-sm btn-danger" th:text="${a.status().name() == 'INVITED'} ? #{asignacion.cancelar.invitacion} : #{asignacion.cancelar}">Cancelar</summary>
+                        <form class="popover form" th:action="@{/maestro/asignaciones/{id}/cancelar(id=${a.id()})}" method="post" th:object="${reasonForm}">
+                            <div class="field">
+                                <label for="reason" th:text="#{campo.motivo}">Motivo</label>
+                                <textarea th:field="*{reason}" rows="3" required minlength="5" maxlength="300"></textarea>
+                            </div>
+                            <button class="btn btn-danger btn-block" type="submit" th:text="#{asignacion.cancelar.confirmar}">Cancelar asignación</button>
+                        </form>
+                    </details>
+                </div>
+            </section>
+        </aside>
+    </div>
+</th:block>
+</body>
+</html>

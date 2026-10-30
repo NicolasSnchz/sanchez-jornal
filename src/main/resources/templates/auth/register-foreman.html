@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/bare :: bare(#{titulo.registro.maestro}, ~{::view})}">
+<body>
+<div th:fragment="view" class="page register-page">
+    <a class="brand" th:href="@{/login}">
+        <svg th:replace="~{fragments/icons :: mark}"></svg>
+        <span class="brand-name">Jornal</span>
+    </a>
+    <div class="page-head">
+        <div>
+            <div class="crumbs"><a th:href="@{/registro}" th:text="#{registro.volver}">Volver</a></div>
+            <h1 th:text="#{titulo.registro.maestro}">Registro</h1>
+            <p class="lede" th:text="#{titulo.registro.maestro.lede}">Texto</p>
+        </div>
+    </div>
+    <form class="panel" th:action="@{/registro/maestro}" th:object="${form}" method="post" novalidate>
+        <div class="panel-body form">
+            <div th:replace="~{fragments/ui :: globalErrors}"></div>
+            <th:block th:replace="~{fragments/register :: personal}"></th:block>
+            <fieldset class="fieldset">
+                <legend th:text="#{registro.seccion.empresa}">Tu empresa</legend>
+                <div class="form-grid">
+                    <div class="wide" th:insert="~{fragments/ui :: input('companyName', #{campo.empresa}, 'text', #{campo.empresa.pista})}"></div>
+                </div>
+            </fieldset>
+            <th:block th:replace="~{fragments/register :: account}"></th:block>
+        </div>
+        <div class="panel-foot split">
+            <span class="muted small" th:text="#{registro.pie}">Texto</span>
+            <button class="btn btn-primary btn-lg" type="submit" th:text="#{registro.boton}">Crear cuenta</button>
+        </div>
+    </form>
+</div>
+</body>
+</html>

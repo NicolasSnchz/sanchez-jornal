@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/bare :: bare(#{titulo.registro}, ~{::view})}">
+<body>
+<div class="auth" th:fragment="view">
+    <section class="auth-side">
+        <a class="brand" th:href="@{/login}">
+            <svg th:replace="~{fragments/icons :: mark}"></svg>
+            <span class="brand-name">Jornal</span>
+        </a>
+        <div>
+            <h1 th:text="#{registro.titular}">Crea tu cuenta</h1>
+            <p class="claim" th:text="#{registro.claim}">Texto</p>
+        </div>
+    </section>
+    <section class="auth-main">
+        <div class="auth-box stack">
+            <h2 th:text="#{registro.pregunta}">¿Cómo vas a usar Jornal?</h2>
+            <div class="choice-list">
+                <a class="choice" th:href="@{/registro/maestro}">
+                    <span class="choice-body">
+                        <strong th:text="#{registro.maestro.titulo}">Contrato ayudantes</strong>
+                        <span class="muted small" th:text="#{registro.maestro.texto}">Texto</span>
+                    </span>
+                </a>
+                <a class="choice" th:href="@{/registro/trabajador}">
+                    <span class="choice-body">
+                        <strong th:text="#{registro.trabajador.titulo}">Busco trabajo por días</strong>
+                        <span class="muted small" th:text="#{registro.trabajador.texto}">Texto</span>
+                    </span>
+                </a>
+            </div>
+            <p class="muted" th:utext="#{registro.ya.tengo(@{/login})}">¿Ya tienes cuenta?</p>
+        </div>
+    </section>
+</div>
+</body>
+</html>

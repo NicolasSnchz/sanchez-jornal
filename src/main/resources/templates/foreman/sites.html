@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: page(#{titulo.obras}, ~{::view}, 'page')}">
+<body>
+<th:block th:fragment="view">
+    <div class="page-head">
+        <div>
+            <h1 th:text="#{titulo.obras}">Obras</h1>
+            <p class="lede" th:text="#{obras.lede}">Cada obra agrupa sus frentes de trabajo.</p>
+        </div>
+        <a class="btn btn-primary" th:href="@{/maestro/obras/nueva}" th:text="#{obra.nueva}">Nueva obra</a>
+    </div>
+
+    <div class="site-list" th:if="${!#lists.isEmpty(sites)}">
+        <a class="site-card" th:each="s : ${sites}" th:href="@{/maestro/obras/{id}(id=${s.id()})}"
+           th:classappend="${'s-' + s.status()}">
+            <div class="split">
+                <span th:replace="~{fragments/ui :: siteStatus(${s.status()}, ${s.delayed()})}"></span>
+                <span class="faint small" th:text="${@fmt.shortDate(s.startDate())} + ' – ' + ${@fmt.date(s.estimatedEndDate())}">fechas</span>
+            </div>
+            <div>
+                <h3 th:text="${s.name()}">Obra</h3>
+                <p class="addr" th:text="${s.address()} + ', ' + ${s.neighborhood()} + ', ' + ${s.city()}">Dirección</p>
+            </div>
+            <div class="figures">
+                <span><strong th:text="${s.frontsCount()}">2</strong><th:block th:text="#{obras.frentes}">frentes</th:block></span>
+                <span><strong th:text="${s.workersInProgress()}">3</strong><th:block th:text="#{obras.trabajando}">trabajando</th:block></span>
+                <span><strong th:text="${@fmt.money(s.laborCost())}">$0</strong><th:block th:text="#{obras.mano.obra}">mano de obra</th:block></span>
+            </div>
+        </a>
+    </div>
+
+    <div class="panel empty" th:if="${#lists.isEmpty(sites)}">
+        <strong th:text="#{obras.vacio.titulo}">Aún no tienes obras</strong>
+        <span th:text="#{obras.vacio.texto}">Registra la primera.</span>
+        <div><a class="btn btn-primary" th:href="@{/maestro/obras/nueva}" th:text="#{obra.nueva}">Nueva obra</a></div>
+    </div>
+</th:block>
+</body>
+</html>

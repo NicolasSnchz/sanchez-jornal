@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<!--/* Plantilla de las paginas sin sesion: ingreso, registro y errores. */-->
+<html lang="es-CO" xmlns:th="http://www.thymeleaf.org" th:fragment="bare(title, view)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' | Jornal'">Jornal</title>
+    <link rel="icon" type="image/svg+xml" th:href="@{/favicon.svg}">
+    <link rel="stylesheet" th:href="@{/css/jornal.css}">
+    <script th:src="@{/js/jornal.js}" defer></script>
+</head>
+<body>
+<th:block th:replace="${view}"></th:block>
+</body>
+</html>

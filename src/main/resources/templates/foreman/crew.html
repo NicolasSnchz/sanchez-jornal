@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: page(#{titulo.cuadrilla}, ~{::view}, 'page')}">
+<body>
+<th:block th:fragment="view">
+    <div class="page-head">
+        <div>
+            <h1 th:text="#{titulo.cuadrilla}">Cuadrilla</h1>
+            <p class="lede" th:text="#{cuadrilla.lede}">Quién está trabajando contigo y quién tiene una invitación abierta.</p>
+        </div>
+    </div>
+
+    <section class="panel">
+        <div class="table-wrap" th:if="${!#lists.isEmpty(crew)}">
+            <table class="table table-stack">
+                <thead><tr>
+                    <th th:text="#{cuadrilla.col.trabajador}">Trabajador</th>
+                    <th th:text="#{cuadrilla.col.obra}">Obra y frente</th>
+                    <th th:text="#{cuadrilla.col.estado}">Estado</th>
+                    <th th:text="#{cuadrilla.col.jornadas}">Jornadas</th>
+                    <th class="right" th:text="#{cuadrilla.col.saldo}">Saldo</th>
+                </tr></thead>
+                <tbody>
+                <tr th:each="r : ${crew}">
+                    <td class="cell-main">
+                        <a class="person" th:href="@{/maestro/asignaciones/{id}(id=${r.id()})}">
+                            <span class="avatar" th:text="${r.workerInitials()}">YQ</span>
+                            <span class="person-text"><strong th:text="${r.workerName()}">Nombre</strong>
+                                <span th:text="#{${'oficio.' + r.workerTrade()}} + ', ' + ${@fmt.money(r.dailyWage())} + ' ' + #{cuadrilla.por.dia}">Ayudante</span></span>
+                        </a>
+                    </td>
+                    <td th:attr="data-label=#{cuadrilla.col.obra}">
+                        <span th:text="${r.siteName()}">Obra</span>
+                        <div class="small muted" th:text="${r.frontTask()}">Frente</div>
+                    </td>
+                    <td><span th:replace="~{fragments/ui :: assignmentStatus(${r.status()})}"></span></td>
+                    <td th:attr="data-label=#{cuadrilla.col.jornadas}" class="small">
+                        <span th:text="#{cuadrilla.jornadas(${r.workedDays()})}">12 jornadas</span>
+                        <span th:if="${r.pendingDays() > 0}" class="chip chip-wait" th:text="#{cuadrilla.por.confirmar(${r.pendingDays()})}">2 por confirmar</span>
+                        <span th:if="${r.disputedDays() > 0}" class="chip chip-bad" th:text="#{cuadrilla.objetadas(${r.disputedDays()})}">1 objetada</span>
+                    </td>
+                    <td class="right" th:attr="data-label=#{cuadrilla.col.saldo}"><span class="money" th:text="${@fmt.money(r.balance())}">$0</span></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="empty" th:if="${#lists.isEmpty(crew)}">
+            <strong th:text="#{cuadrilla.vacia}">Tu cuadrilla está vacía</strong>
+            <span th:text="#{cuadrilla.vacia.texto}">Abre un frente en una obra e invita trabajadores.</span>
+            <div><a class="btn btn-primary" th:href="@{/maestro/obras}" th:text="#{cuadrilla.ir.obras}">Ir a mis obras</a></div>
+        </div>
+    </section>
+</th:block>
+</body>
+</html>

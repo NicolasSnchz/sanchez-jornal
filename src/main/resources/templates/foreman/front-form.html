@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: page(#{frente.nuevo}, ~{::view}, 'page page-narrow')}">
+<body>
+<th:block th:fragment="view">
+    <div class="page-head">
+        <div>
+            <div class="crumbs">
+                <a th:href="@{/maestro/obras}" th:text="#{titulo.obras}">Obras</a><span aria-hidden="true">/</span>
+                <a th:href="@{/maestro/obras/{id}(id=${site.id()})}" th:text="${site.name()}">Obra</a>
+            </div>
+            <h1 th:text="#{frente.nuevo}">Abrir frente</h1>
+            <p class="lede" th:text="#{frente.form.lede(${@fmt.date(site.startDate())}, ${@fmt.date(site.estimatedEndDate())})}">Texto</p>
+        </div>
+    </div>
+
+    <form class="panel" th:object="${form}" th:action="@{/maestro/obras/{id}/frentes(id=${site.id()})}" method="post" novalidate>
+        <div class="panel-body form">
+            <div th:replace="~{fragments/ui :: globalErrors}"></div>
+
+            <fieldset class="fieldset">
+                <legend th:text="#{frente.seccion.labor}">La labor</legend>
+                <div class="form-grid">
+                    <div class="wide" th:insert="~{fragments/ui :: input('task', #{campo.frente.labor}, 'text', #{campo.frente.labor.pista})}"></div>
+                    <div class="field" th:classappend="${#fields.hasErrors('requiredTrade')} ? 'field-invalid'">
+                        <label for="requiredTrade" th:text="#{campo.oficio}">Oficio</label>
+                        <select th:field="*{requiredTrade}">
+                            <option value="" th:text="#{campo.seleccione}">Selecciona</option>
+                            <option th:each="t : ${trades}" th:value="${t}" th:text="#{${'oficio.' + t}}">Oficio</option>
+                        </select>
+                        <p class="field-error" th:if="${#fields.hasErrors('requiredTrade')}" th:errors="*{requiredTrade}"></p>
+                    </div>
+                    <div th:replace="~{fragments/ui :: input('openings', #{campo.frente.cupos}, 'number', #{campo.frente.cupos.pista})}"></div>
+                    <div class="wide" th:insert="~{fragments/ui :: money('offeredDailyWage', #{campo.frente.jornal}, #{campo.frente.jornal.pista})}"></div>
+                </div>
+            </fieldset>
+
+            <fieldset class="fieldset">
+                <legend th:text="#{frente.seccion.calendario}">Calendario y horario</legend>
+                <div class="form-grid">
+                    <div th:replace="~{fragments/ui :: input('startDate', #{campo.frente.inicio}, 'date', null)}"></div>
+                    <div th:replace="~{fragments/ui :: input('endDate', #{campo.frente.fin}, 'date', null)}"></div>
+                    <div class="wide field" th:classappend="${#fields.hasErrors('workDays')} ? 'field-invalid'">
+                        <span class="label" th:text="#{campo.frente.dias}">Días de trabajo</span>
+                        <div class="day-picker">
+                            <label th:each="day : ${daysOfWeek}">
+                                <input type="checkbox" th:field="*{workDays}" th:value="${day}">
+                                <span th:text="${@fmt.dayName(day)}">lun</span>
+                            </label>
+                        </div>
+                        <p class="field-error" th:if="${#fields.hasErrors('workDays')}" th:errors="*{workDays}"></p>
+                    </div>
+                    <div th:replace="~{fragments/ui :: input('startTime', #{campo.frente.entrada}, 'time', null)}"></div>
+                    <div th:replace="~{fragments/ui :: input('endTime', #{campo.frente.salida}, 'time', null)}"></div>
+                    <div th:replace="~{fragments/ui :: input('lunchBreakMinutes', #{campo.frente.almuerzo}, 'number', #{campo.frente.almuerzo.pista})}"></div>
+                </div>
+                <p class="hint" th:text="#{frente.reglas.horario}">Jornada diurna entre 6:00 a. m. y 7:00 p. m.; máximo 42 horas a la semana.</p>
+            </fieldset>
+        </div>
+        <div class="panel-foot split">
+            <a class="btn btn-quiet" th:href="@{/maestro/obras/{id}(id=${site.id()})}" th:text="#{accion.cancelar}">Cancelar</a>
+            <button class="btn btn-primary" type="submit" th:text="#{frente.abrir}">Abrir frente</button>
+        </div>
+    </form>
+</th:block>
+</body>
+</html>

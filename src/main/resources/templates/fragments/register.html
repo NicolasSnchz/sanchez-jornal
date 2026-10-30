@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<!--/* Campos del registro comunes a maestros y trabajadores. Se usan dentro de un th:object. */-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="personal">
+<fieldset class="fieldset">
+    <legend th:text="#{registro.seccion.persona}">Tus datos</legend>
+    <div class="form-grid">
+        <div th:replace="~{fragments/ui :: input('firstName', #{campo.nombres}, 'text', null)}"></div>
+        <div th:replace="~{fragments/ui :: input('lastName', #{campo.apellidos}, 'text', null)}"></div>
+        <div class="field" th:classappend="${#fields.hasErrors('documentType')} ? 'field-invalid'">
+            <label for="documentType" th:text="#{campo.tipo.documento}">Tipo de documento</label>
+            <select th:field="*{documentType}">
+                <option value="" th:text="#{campo.seleccione}">Selecciona</option>
+                <option th:each="t : ${documentTypes}" th:value="${t}" th:text="#{${'documento.' + t}}">CC</option>
+            </select>
+            <p class="field-error" th:if="${#fields.hasErrors('documentType')}" th:errors="*{documentType}"></p>
+        </div>
+        <div th:replace="~{fragments/ui :: input('documentNumber', #{campo.numero.documento}, 'text', #{campo.numero.documento.pista})}"></div>
+        <div th:replace="~{fragments/ui :: input('birthDate', #{campo.fecha.nacimiento}, 'date', #{campo.fecha.nacimiento.pista})}"></div>
+        <div class="field" th:classappend="${#fields.hasErrors('gender')} ? 'field-invalid'">
+            <label for="gender" th:text="#{campo.genero}">Género</label>
+            <select th:field="*{gender}">
+                <option value="" th:text="#{campo.seleccione}">Selecciona</option>
+                <option th:each="g : ${genders}" th:value="${g}" th:text="#{${'genero.' + g}}">Género</option>
+            </select>
+            <p class="field-error" th:if="${#fields.hasErrors('gender')}" th:errors="*{gender}"></p>
+        </div>
+        <div th:replace="~{fragments/ui :: input('phone', #{campo.celular}, 'tel', #{campo.celular.pista})}"></div>
+        <div th:replace="~{fragments/ui :: input('city', #{campo.ciudad}, 'text', null)}"></div>
+    </div>
+</fieldset>
+</th:block>
+
+<th:block th:fragment="account">
+<fieldset class="fieldset">
+    <legend th:text="#{registro.seccion.cuenta}">Tu cuenta</legend>
+    <div class="form-grid">
+        <div class="wide" th:insert="~{fragments/ui :: input('email', #{campo.correo}, 'email', #{campo.correo.pista})}"></div>
+        <div th:replace="~{fragments/ui :: input('password', #{campo.clave}, 'password', #{campo.clave.pista})}"></div>
+        <div th:replace="~{fragments/ui :: input('passwordConfirmation', #{campo.clave.repetir}, 'password', null)}"></div>
+        <div class="wide field" th:classappend="${#fields.hasErrors('acceptsDataPolicy')} ? 'field-invalid'">
+            <label class="check">
+                <input type="checkbox" th:field="*{acceptsDataPolicy}">
+                <span th:text="#{registro.habeas.data}">Autorizo el tratamiento de mis datos</span>
+            </label>
+            <p class="field-error" th:if="${#fields.hasErrors('acceptsDataPolicy')}" th:errors="*{acceptsDataPolicy}"></p>
+        </div>
+    </div>
+</fieldset>
+</th:block>
+</body>
+</html>

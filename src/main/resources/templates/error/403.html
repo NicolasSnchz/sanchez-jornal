@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/bare :: bare(#{error.403.titulo}, ~{::view})}">
+<body>
+<div th:fragment="view" class="page">
+    <a class="brand" th:href="@{/}"><svg th:replace="~{fragments/icons :: mark}"></svg><span class="brand-name">Jornal</span></a>
+    <div class="error-page stack">
+        <div class="error-code">403</div>
+        <h1 th:text="#{error.403.titulo}">Título</h1>
+        <p class="muted" th:text="#{error.403.texto}">Texto</p>
+        <div><a class="btn btn-primary" th:href="@{/}" th:text="#{error.volver}">Volver al inicio</a></div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: page(#{titulo.inicio}, ~{::view}, 'page page-narrow')}">
+<body>
+<th:block th:fragment="view" th:with="d=${dashboard}">
+    <div class="page-head">
+        <div>
+            <h1 th:text="#{panel.saludo(${d.firstName()})}">Hola, Yeison</h1>
+            <p class="lede" th:text="${@fmt.longDay(today)}">Jueves 29 de octubre</p>
+        </div>
+    </div>
+
+    <div class="stack stack-lg">
+        <!--/* Lo primero que el trabajador quiere saber: cuanto le deben. */-->
+        <section class="balance-hero is-worker">
+            <span class="label" th:text="#{trabajador.saldo}">Te deben</span>
+            <span class="money-xl" th:text="${@fmt.money(d.balance())}">$35.000</span>
+            <span class="sub" th:if="${d.unconfirmed().signum() > 0}"
+                  th:utext="#{trabajador.saldo.por.confirmar(${@fmt.money(d.unconfirmed())})}">+ $X por confirmar</span>
+            <span class="sub" th:if="${d.unconfirmed().signum() == 0}" th:text="#{trabajador.saldo.al.dia}">Todas tus jornadas están confirmadas.</span>
+        </section>
+
+        <section class="panel">
+            <div class="panel-head">
+                <h2 th:text="#{panel.pendientes}">Para resolver</h2>
+                <p th:text="#{panel.pendientes.trabajador.ayuda}">Confirma solo lo que sea cierto.</p>
+            </div>
+            <div th:replace="~{fragments/ui :: todo(${d.pending()})}"></div>
+        </section>
+
+        <section class="panel" th:each="a : ${d.current()}">
+            <div class="panel-head">
+                <div>
+                    <h2 th:text="${a.siteName()}">Obra</h2>
+                    <p th:text="${a.frontTask()} + ', ' + ${a.siteAddress()}">Frente</p>
+                </div>
+                <a class="btn btn-sm" th:href="@{/trabajador/asignaciones/{id}(id=${a.id()})}" th:text="#{trabajador.ver.planilla}">Ver planilla</a>
+            </div>
+            <div class="panel-body">
+                <dl class="facts">
+                    <dt th:text="#{trabajador.maestro}">Maestro</dt><dd th:text="${a.foremanName()}">Carlos</dd>
+                    <dt th:text="#{trabajador.horario}">Horario</dt><dd th:text="${@fmt.days(a.scheduleDays())} + ', ' + ${@fmt.time(a.startTime())} + ' – ' + ${@fmt.time(a.endTime())}">lun a vie</dd>
+                    <dt th:text="#{asignacion.jornal.pactado}">Jornal</dt><dd class="money" th:text="${@fmt.money(a.dailyWage())}">$75.000</dd>
+                    <dt th:text="#{trabajador.esta.semana}">Esta semana</dt><dd th:text="${@fmt.duration(a.week().workedMinutes())} + ', ' + ${@fmt.money(a.week().value())}">40 h</dd>
+                    <dt th:text="#{saldo.por.pagar}">Saldo</dt><dd class="money" th:text="${@fmt.money(a.balance())}">$0</dd>
+                </dl>
+            </div>
+        </section>
+
+        <section class="panel" th:if="${!#lists.isEmpty(d.invitations())}">
+            <div class="panel-head"><h2 th:text="#{trabajador.invitaciones}">Invitaciones</h2></div>
+            <ul class="todo">
+                <li th:each="r : ${d.invitations()}" class="k-info">
+                    <div class="text">
+                        <strong th:text="${r.siteName()} + ': ' + ${r.frontTask()}">Obra</strong>
+                        <small class="muted" th:text="#{trabajador.invitacion.detalle(${r.foremanName()}, ${@fmt.money(r.dailyWage())}, ${@fmt.date(r.startDate())})}">detalle</small>
+                    </div>
+                    <a class="btn btn-sm btn-primary" th:href="@{/trabajador/asignaciones/{id}(id=${r.id()})}" th:text="#{accion.responder}">Responder</a>
+                </li>
+            </ul>
+        </section>
+
+        <div class="empty panel" th:if="${#lists.isEmpty(d.current()) and #lists.isEmpty(d.invitations())}">
+            <strong th:text="#{trabajador.sin.trabajo}">No tienes trabajo activo</strong>
+            <span th:text="${d.acceptingOffers()} ? #{trabajador.sin.trabajo.recibe} : #{trabajador.sin.trabajo.no.recibe}">Texto</span>
+            <div th:unless="${d.acceptingOffers()}"><a class="btn btn-primary" th:href="@{/trabajador/perfil}" th:text="#{trabajador.activar.ofertas}">Recibir ofertas</a></div>
+        </div>
+
+        <section class="board">
+            <div class="board-cell">
+                <span class="label" th:text="#{trabajador.jornadas.confirmadas}">Jornadas confirmadas</span>
+                <span class="value" th:text="${d.confirmedWorkDays()}">20</span>
+            </div>
+            <div class="board-cell">
+                <span class="label" th:text="#{trabajador.calificacion}">Tu calificación</span>
+                <span class="value" th:text="${d.rating() != null} ? ${#numbers.formatDecimal(d.rating(), 1, 1, 'COMMA')} : '—'">4,8</span>
+                <span class="detail" th:text="#{panel.calificacion.detalle.maestros(${d.ratingCount()})}">de 2 maestros</span>
+            </div>
+        </section>
+    </div>
+</th:block>
+</body>
+</html>

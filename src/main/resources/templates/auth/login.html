@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/bare :: bare(#{titulo.ingresar}, ~{::view})}">
+<body>
+<div class="auth" th:fragment="view">
+    <section class="auth-side">
+        <a class="brand" th:href="@{/login}">
+            <svg th:replace="~{fragments/icons :: mark}"></svg>
+            <span class="brand-name">Jornal</span>
+        </a>
+        <div>
+            <h1 th:text="#{login.titular}">Cada jornada anotada, cada peso claro.</h1>
+            <p class="claim" th:text="#{login.claim}">Texto</p>
+        </div>
+        <!--/* Muestra estatica de la planilla: lo que el producto hace, sin palabras. */-->
+        <div class="auth-sample" aria-hidden="true">
+            <div class="sample-head"><span th:text="#{login.muestra.titulo}">Planilla de Yeison</span><span th:text="#{login.muestra.semana}">Semana</span></div>
+            <div class="sample-row"><span>lun</span><div class="track st-CONFIRMED"><span class="schedule" data-start="7.69" data-size="69.23"></span><span class="presence" data-start="7.69" data-size="69.23"></span></div><span class="money">$75.000</span></div>
+            <div class="sample-row"><span>mar</span><div class="track st-CONFIRMED"><span class="schedule" data-start="7.69" data-size="69.23"></span><span class="presence" data-start="7.69" data-size="84.62"></span><span class="overtime" data-start="76.92" data-size="15.38"></span></div><span class="money">$98.438</span></div>
+            <div class="sample-row"><span>mié</span><div class="track st-CONFIRMED"><span class="schedule" data-start="7.69" data-size="69.23"></span><span class="presence" data-start="7.69" data-size="30.77"></span></div><span class="money">$37.500</span></div>
+            <div class="sample-row"><span>jue</span><div class="track st-DISPUTED"><span class="schedule" data-start="7.69" data-size="69.23"></span><span class="presence" data-start="7.69" data-size="69.23"></span></div><span class="money">$75.000</span></div>
+        </div>
+    </section>
+
+    <section class="auth-main">
+        <div class="auth-box stack">
+            <div>
+                <h2 th:text="#{login.titulo}">Ingresar</h2>
+                <p class="muted" th:text="#{login.subtitulo}">Usa el correo con el que te registraste.</p>
+            </div>
+
+            <div th:replace="~{fragments/ui :: notice}"></div>
+            <div class="notice notice-error" role="alert" th:if="${param.error != null}">
+                <svg th:replace="~{fragments/icons :: alert}"></svg><p th:text="#{login.error}">Correo o clave incorrectos.</p>
+            </div>
+            <div class="notice notice-warning" role="alert" th:if="${param.bloqueada != null}">
+                <svg th:replace="~{fragments/icons :: alert}"></svg><p th:text="#{login.bloqueada}">Cuenta bloqueada.</p>
+            </div>
+            <div class="notice notice-error" role="alert" th:if="${param.inactiva != null}">
+                <svg th:replace="~{fragments/icons :: alert}"></svg><p th:text="#{login.inactiva}">Cuenta desactivada.</p>
+            </div>
+            <div class="notice notice-info" role="status" th:if="${param.salida != null}">
+                <svg th:replace="~{fragments/icons :: info}"></svg><p th:text="#{login.salida}">Sesión cerrada.</p>
+            </div>
+
+            <form class="form" th:action="@{/login}" method="post">
+                <div class="field">
+                    <label for="email" th:text="#{campo.correo}">Correo</label>
+                    <input type="email" id="email" name="email" autocomplete="username" required autofocus>
+                </div>
+                <div class="field">
+                    <div class="split">
+                        <label for="password" th:text="#{campo.clave}">Clave</label>
+                        <button type="button" class="btn btn-quiet btn-sm" hidden data-toggle-password="password"
+                                th:attr="data-show-label=#{accion.mostrar},data-hide-label=#{accion.ocultar}"
+                                aria-pressed="false" th:text="#{accion.mostrar}">Mostrar</button>
+                    </div>
+                    <input type="password" id="password" name="password" autocomplete="current-password" required>
+                </div>
+                <button class="btn btn-primary btn-lg btn-block" type="submit" th:text="#{login.boton}">Ingresar</button>
+            </form>
+
+            <p class="muted" th:utext="#{login.registro(@{/registro})}">¿No tienes cuenta? Regístrate</p>
+
+            <div class="demo-accounts" th:if="${demoAccounts}">
+                <strong th:text="#{login.demo.titulo}">Cuentas de demostración</strong>
+                <dl>
+                    <dt th:text="#{rol.FOREMAN}">Maestro</dt><dd>maestro@jornal.co</dd>
+                    <dt th:text="#{rol.WORKER}">Trabajador</dt><dd>trabajador@jornal.co</dd>
+                    <dt th:text="#{campo.clave}">Clave</dt><dd>Jornal2026*</dd>
+                </dl>
+            </div>
+        </div>
+    </section>
+</div>
+</body>
+</html>

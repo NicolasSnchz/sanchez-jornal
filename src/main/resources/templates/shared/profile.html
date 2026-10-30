@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{fragments/layout :: page(#{titulo.perfil}, ~{::view}, 'page page-narrow')}">
+<body>
+<th:block th:fragment="view" th:with="p=${profile},foreman=${me.isForeman()}">
+    <div class="page-head">
+        <div class="cluster">
+            <span class="avatar avatar-lg" th:text="${p.initials()}">CR</span>
+            <div>
+                <h1 th:text="${p.fullName()}">Nombre</h1>
+                <p class="muted" th:text="#{${'rol.' + p.role()}} + ', ' + #{perfil.desde(${@fmt.date(p.memberSince().toLocalDate())})}">Maestro</p>
+            </div>
+        </div>
+        <span th:replace="~{fragments/ui :: rating(${p.rating()}, ${p.ratingCount()})}"></span>
+    </div>
+
+    <div class="stack stack-lg">
+        <section class="panel">
+            <div class="panel-body">
+                <dl class="facts">
+                    <dt th:text="#{campo.correo}">Correo</dt><dd th:text="${p.email()}">correo</dd>
+                    <dt th:text="#{campo.documento}">Documento</dt><dd th:text="#{${'documento.' + p.documentType()}} + ' ' + ${p.documentNumber()}">CC</dd>
+                    <dt th:text="#{perfil.edad}">Edad</dt><dd th:text="#{perfil.anios(${p.age()})}">30 años</dd>
+                    <dt th:text="#{perfil.finalizados}">Trabajos finalizados</dt><dd th:text="${p.completedAssignments()}">2</dd>
+                    <th:block th:unless="${foreman}"><dt th:text="#{trabajador.jornadas.confirmadas}">Jornadas</dt><dd th:text="${p.confirmedWorkDays()}">20</dd></th:block>
+                </dl>
+                <p class="hint" th:text="#{perfil.no.editable}">El correo y el documento identifican tu cuenta y no se cambian.</p>
+            </div>
+        </section>
+
+        <form class="panel" th:object="${form}" method="post" novalidate
+              th:action="${foreman} ? @{/maestro/perfil} : @{/trabajador/perfil}">
+            <div class="panel-head"><h2 th:text="#{perfil.editar}">Actualizar datos</h2></div>
+            <div class="panel-body form">
+                <div class="form-grid">
+                    <div th:replace="~{fragments/ui :: input('phone', #{campo.celular}, 'tel', null)}"></div>
+                    <div th:replace="~{fragments/ui :: input('city', #{campo.ciudad}, 'text', null)}"></div>
+                    <div class="wide" th:if="${foreman}" th:insert="~{fragments/ui :: input('companyName', #{campo.empresa}, 'text', #{campo.empresa.pista})}"></div>
+                </div>
+                <fieldset class="fieldset" th:unless="${foreman}">
+                    <legend th:text="#{registro.seccion.trabajo}">Tu trabajo</legend>
+                    <div class="form-grid">
+                        <div class="wide field">
+                            <label class="check"><input type="checkbox" th:field="*{acceptingOffers}">
+                                <span><strong th:text="#{campo.recibe.ofertas}">Recibir ofertas</strong><br>
+                                <span class="muted" th:text="#{campo.recibe.ofertas.pista}">Si lo desactivas, los maestros no te encuentran.</span></span></label>
+                        </div>
+                        <div class="field" th:classappend="${#fields.hasErrors('trade')} ? 'field-invalid'">
+                            <label for="trade" th:text="#{campo.oficio}">Oficio</label>
+                            <select th:field="*{trade}">
+                                <option th:each="t : ${trades}" th:value="${t}" th:text="#{${'oficio.' + t}}">Oficio</option>
+                            </select>
+                        </div>
+                        <div th:replace="~{fragments/ui :: input('yearsOfExperience', #{campo.experiencia}, 'number', null)}"></div>
+                        <div th:replace="~{fragments/ui :: input('neighborhood', #{campo.barrio}, 'text', null)}"></div>
+                        <div th:replace="~{fragments/ui :: input('emergencyPhone', #{campo.telefono.emergencia}, 'tel', null)}"></div>
+                        <div th:replace="~{fragments/ui :: input('arlValidUntil', #{campo.arl}, 'date', #{campo.arl.pista})}"></div>
+                        <div class="field">
+                            <span class="label" th:text="#{campo.herramienta}">Herramienta</span>
+                            <label class="check"><input type="checkbox" th:field="*{hasOwnTools}"><span th:text="#{campo.herramienta.si}">Tengo herramienta propia</span></label>
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+            <div class="panel-foot split">
+                <span></span>
+                <button class="btn btn-primary" type="submit" th:text="#{accion.guardar}">Guardar cambios</button>
+            </div>
+        </form>
+    </div>
+</th:block>
+</body>
+</html>

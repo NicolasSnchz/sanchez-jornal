@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<!--/* Piezas reutilizables de la interfaz. */-->
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<!--/* Aviso de una sola vez despues de una redireccion (Post/Redirect/Get). */-->
+<div th:fragment="notice" th:if="${notice != null}" class="notice" role="status"
+     th:classappend="${notice.kind() == 'success'} ? 'notice-success' : 'notice-error'">
+    <svg th:replace="${notice.kind() == 'success'} ? ~{fragments/icons :: check} : ~{fragments/icons :: alert}"></svg>
+    <p th:text="${#messages.msgWithParams(notice.code(), notice.args())}">Mensaje</p>
+    <button type="button" class="notice-close" data-dismiss th:aria-label="#{accion.cerrar}">&times;</button>
+</div>
+
+<!--/* Errores que no son de un campo (reglas de negocio) arriba del formulario. */-->
+<div th:fragment="globalErrors" th:if="${#fields.hasGlobalErrors()}" class="error-summary" role="alert">
+    <p th:if="${#lists.size(#fields.globalErrors()) == 1}" th:text="${#fields.globalErrors()[0]}">Error</p>
+    <ul th:if="${#lists.size(#fields.globalErrors()) > 1}">
+        <li th:each="error : ${#fields.globalErrors()}" th:text="${error}">Error</li>
+    </ul>
+</div>
+
+<!--/* Campo de texto con su etiqueta, pista opcional y error. */-->
+<div th:fragment="input(name, label, type, hint)" class="field"
+     th:classappend="${#fields.hasErrors(name)} ? 'field-invalid'">
+    <label th:for="${name}" th:text="${label}">Etiqueta</label>
+    <input th:type="${type}" th:field="*{__${name}__}"
+           th:attr="aria-describedby=${hint != null or #fields.hasErrors(name)} ? ${name + '-help'}">
+    <p class="hint" th:if="${hint != null}" th:id="${name + '-help'}" th:text="${hint}">Pista</p>
+    <p class="field-error" th:if="${#fields.hasErrors(name)}" th:id="${hint == null} ? ${name + '-help'}"
+       th:errors="*{__${name}__}">Error</p>
+</div>
+
+<!--/* Valor en pesos: el signo va por CSS para que el campo reciba solo numeros. */-->
+<div th:fragment="money(name, label, hint)" class="field"
+     th:classappend="${#fields.hasErrors(name)} ? 'field-invalid'">
+    <label th:for="${name}" th:text="${label}">Valor</label>
+    <div class="input-money">
+        <input type="number" inputmode="numeric" min="0" step="1" th:field="*{__${name}__}">
+    </div>
+    <p class="hint" th:if="${hint != null}" th:text="${hint}">Pista</p>
+    <p class="field-error" th:if="${#fields.hasErrors(name)}" th:errors="*{__${name}__}">Error</p>
+</div>
+
+<!--/* Estados con forma y color (no solo color). */-->
+<span th:fragment="assignmentStatus(status)" class="chip"
+      th:classappend="${status.name() == 'IN_PROGRESS'} ? 'chip-info' : (${status.name() == 'COMPLETED'} ? 'chip-ok' : (${status.name() == 'INVITED'} ? 'chip-wait' : 'chip-neutral'))"
+      th:text="#{${'estado.asignacion.' + status}}">Estado</span>
+
+<span th:fragment="siteStatus(status, delayed)" class="chip"
+      th:classappend="${delayed} ? 'chip-bad' : (${status.name() == 'IN_PROGRESS'} ? 'chip-info' : (${status.name() == 'FINISHED'} ? 'chip-ok' : (${status.name() == 'PLANNED'} ? 'chip-wait' : 'chip-bad')))"
+      th:text="${delayed} ? #{estado.obra.retrasada} : #{${'estado.obra.' + status}}">Estado</span>
+
+<span th:fragment="dayStatus(status)" class="chip"
+      th:classappend="${status.name() == 'CONFIRMED'} ? 'chip-ok' : (${status.name() == 'DISPUTED'} ? 'chip-bad' : 'chip-wait')"
+      th:text="#{${'estado.jornada.' + status}}">Estado</span>
+
+<span th:fragment="paymentStatus(status)" class="chip"
+      th:classappend="${status.name() == 'CONFIRMED'} ? 'chip-ok' : (${status.name() == 'CANCELLED'} ? 'chip-neutral' : 'chip-wait')"
+      th:text="#{${'estado.pago.' + status}}">Estado</span>
+
+<span th:fragment="rating(value, count)" class="rating">
+    <th:block th:if="${value != null}">
+        <svg th:replace="~{fragments/icons :: star}"></svg>
+        <span th:text="${#numbers.formatDecimal(value, 1, 1, 'COMMA')}">4,8</span>
+        <span class="faint small" th:text="'(' + ${count} + ')'">(3)</span>
+    </th:block>
+    <span th:if="${value == null}" class="faint small" th:text="#{calificacion.sin}">Sin calificaciones</span>
+</span>
+
+<!--/* Lista de pendientes del panel: cada uno con su accion directa. */-->
+<th:block th:fragment="todo(items)">
+    <ul class="todo" th:if="${!#lists.isEmpty(items)}">
+        <li th:each="item : ${items}" th:class="${'k-' + item.kind()}">
+            <div class="text">
+                <strong th:text="${#messages.msgWithParams(item.messageCode(), item.args())}">Pendiente</strong>
+                <p th:if="${item.detail() != null}" th:text="'“' + ${item.detail()} + '”'">Detalle</p>
+                <small th:if="${item.since() != null}" th:text="${@fmt.dateTime(item.since())}">fecha</small>
+            </div>
+            <a class="btn btn-sm" th:href="@{${item.link()}}" th:text="#{${item.linkLabelCode()}}">Ver</a>
+        </li>
+    </ul>
+    <div class="empty-done" th:if="${#lists.isEmpty(items)}">
+        <svg th:replace="~{fragments/icons :: check}"></svg>
+        <span th:text="#{pendiente.ninguno}">Todo al dia.</span>
+    </div>
+</th:block>
+
+<!--/*
+  Planilla semanal: la pieza central de Jornal. Cada dia muestra la franja del
+  horario pactado y encima la presencia real; las horas extra van rayadas en
+  amarillo. role = 'FOREMAN' o 'WORKER' decide que acciones aparecen.
+*/-->
+<section th:fragment="planilla(a, role)" class="panel" id="planilla">
+    <div class="panel-head">
+        <div>
+            <h2 th:text="#{planilla.titulo}">Planilla de la semana</h2>
+            <p th:text="#{planilla.horario(${@fmt.days(a.scheduleDays())}, ${@fmt.time(a.startTime())}, ${@fmt.time(a.endTime())}, ${a.lunchBreakMinutes()})}">Horario</p>
+        </div>
+        <nav class="week-nav" th:aria-label="#{planilla.navegar}">
+            <a class="btn btn-sm" th:if="${a.week().hasPrevious()}"
+               th:href="@{${currentPath}(semana=${a.week().previousWeek()})} + '#planilla'" th:aria-label="#{planilla.anterior}">&lsaquo;</a>
+            <span class="btn btn-sm" th:unless="${a.week().hasPrevious()}" aria-disabled="true">&lsaquo;</span>
+            <span class="range" th:text="${@fmt.shortDate(a.week().weekStart())} + ' – ' + ${@fmt.shortDate(a.week().weekEnd())}">semana</span>
+            <a class="btn btn-sm" th:if="${a.week().hasNext()}"
+               th:href="@{${currentPath}(semana=${a.week().nextWeek()})} + '#planilla'" th:aria-label="#{planilla.siguiente}">&rsaquo;</a>
+            <span class="btn btn-sm" th:unless="${a.week().hasNext()}" aria-disabled="true">&rsaquo;</span>
+        </nav>
+    </div>
+
+    <div class="planilla">
+        <div class="planilla-scale" aria-hidden="true">
+            <span></span>
+            <div class="scale"><span class="t6">6 a. m.</span><span class="t10">10</span><span class="t12">12 m.</span><span class="t14">2</span><span class="t16">4</span><span class="t19">7 p. m.</span></div>
+            <span th:text="#{planilla.horas}">Horas</span>
+            <span th:text="#{planilla.valor}">Valor</span>
+            <span></span>
+        </div>
+
+        <div th:each="cell : ${a.week().days()}" class="planilla-row"
+             th:classappend="${(cell.today() ? 'is-today ' : '') + (cell.isMissing() ? 'is-missing ' : '') + (!cell.withinAssignment() or cell.future() or cell.holiday() != null ? 'is-off' : '')}">
+            <div class="day-name">
+                <span th:text="${@fmt.weekday(cell.date())}">lun 26</span>
+                <small th:if="${cell.today()}" th:text="#{planilla.hoy}">Hoy</small>
+                <small th:if="${cell.workDay() != null and cell.workDay().settled()}" th:text="#{planilla.liquidado}">Liquidado</small>
+            </div>
+
+            <div class="track-cell">
+                <div class="track" th:with="d=${cell.workDay()}" th:classappend="${d != null} ? ${'st-' + d.status()}">
+                    <span class="schedule" th:attr="data-start=${a.scheduleStart()},data-size=${a.scheduleLength()}"></span>
+                    <th:block th:if="${d != null}">
+                        <span class="presence" th:attr="data-start=${d.barStart()},data-size=${d.barLength()}"
+                              th:title="${@fmt.time(d.checkInTime())} + ' – ' + ${@fmt.time(d.checkOutTime())}"></span>
+                        <span class="overtime" th:if="${d.overtimeMinutes() > 0}"
+                              th:attr="data-start=${d.overtimeStart()},data-size=${d.overtimeLength()}"></span>
+                    </th:block>
+                    <span class="absent" th:if="${d == null and cell.isMissing()}" th:text="#{planilla.sin.registro}">Sin registro</span>
+                    <span class="absent absent-off" th:if="${d == null and cell.holiday() != null}" th:text="#{planilla.festivo(${cell.holiday()})}">Festivo</span>
+                    <span class="absent absent-off" th:if="${d == null and !cell.isMissing() and cell.future() and cell.withinAssignment() and cell.holiday() == null}" th:text="#{planilla.por.venir}">Por venir</span>
+                </div>
+                <small class="track-times" th:if="${cell.workDay() != null}" th:with="d=${cell.workDay()}"
+                       th:text="#{planilla.horas.detalle(${@fmt.time(d.checkInTime())}, ${@fmt.time(d.checkOutTime())}, ${@fmt.duration(d.breakMinutes())})}">7:00 a. m. a 4:00 p. m.</small>
+            </div>
+            <div class="hours">
+                <th:block th:if="${cell.workDay() != null}" th:with="d=${cell.workDay()}">
+                    <strong th:text="${@fmt.duration(d.workedMinutes())}">8 h</strong>
+                    <small class="ot" th:if="${d.overtimeMinutes() > 0}" th:text="#{planilla.extra(${@fmt.duration(d.overtimeMinutes())})}">+2 h extra</small>
+                </th:block>
+                <span th:if="${cell.workDay() == null}" class="faint">—</span>
+            </div>
+
+            <div class="value hours">
+                <th:block th:if="${cell.workDay() != null}" th:with="d=${cell.workDay()}">
+                    <strong class="money" th:text="${@fmt.money(d.value())}">$75.000</strong>
+                    <small th:if="${d.overtimeMinutes() == 0}" th:text="#{planilla.fraccion(${@fmt.percent(d.fraction())})}">100 %</small>
+                </th:block>
+            </div>
+
+            <div class="row-actions">
+                <th:block th:if="${cell.workDay() != null}" th:with="d=${cell.workDay()}">
+                    <span th:replace="~{fragments/ui :: dayStatus(${d.status()})}"></span>
+                    <!--/* Maestro: registrar el dia que falta o corregir el que no esta confirmado */-->
+                    <a th:if="${role == 'FOREMAN' and d.editable()}" class="btn btn-sm btn-quiet"
+                       th:href="@{/maestro/jornadas/{id}/editar(id=${d.id()})}" th:text="#{accion.corregir}">Corregir</a>
+                    <!--/* Trabajador: confirmar u objetar */-->
+                    <th:block th:if="${role == 'WORKER' and d.status().name() == 'PENDING'}">
+                        <form class="inline-form" th:action="@{/trabajador/jornadas/{id}/confirmar(id=${d.id()})}" method="post">
+                            <button class="btn btn-sm btn-ok" type="submit" th:text="#{accion.confirmar}">Confirmar</button>
+                        </form>
+                    </th:block>
+                </th:block>
+                <a th:if="${role == 'FOREMAN' and cell.workDay() == null and cell.isMissing() and a.canRegisterWorkDay()}"
+                   class="btn btn-sm" th:href="@{/maestro/asignaciones/{id}/jornadas/nueva(id=${a.id()},fecha=${cell.date()})}"
+                   th:text="#{accion.registrar}">Registrar</a>
+            </div>
+        </div>
+
+        <p class="empty" th:if="${#lists.isEmpty(a.week().days())}" th:text="#{planilla.vacia}">Sin dias laborales en esta semana.</p>
+
+        <div class="planilla-foot">
+            <span><span class="muted" th:text="#{planilla.total.horas}">Horas</span>
+                <strong th:text="${@fmt.duration(a.week().workedMinutes())}">40 h</strong></span>
+            <span th:if="${a.week().overtimeMinutes() > 0}"><span class="muted" th:text="#{planilla.total.extra}">Extra</span>
+                <strong th:text="${@fmt.duration(a.week().overtimeMinutes())}">2 h</strong></span>
+            <span><span class="muted" th:text="#{planilla.total.valor}">Valor</span>
+                <strong class="money" th:text="${@fmt.money(a.week().value())}">$375.000</strong></span>
+        </div>
+    </div>
+    <div class="legend" aria-hidden="true">
+        <span><i class="l-schedule"></i><th:block th:text="#{planilla.leyenda.horario}">Horario pactado</th:block></span>
+        <span><i class="l-ok"></i><th:block th:text="#{planilla.leyenda.confirmada}">Confirmada</th:block></span>
+        <span><i class="l-wait"></i><th:block th:text="#{planilla.leyenda.pendiente}">Por confirmar</th:block></span>
+        <span><i class="l-bad"></i><th:block th:text="#{planilla.leyenda.objetada}">Objetada</th:block></span>
+        <span><i class="l-ot"></i><th:block th:text="#{planilla.leyenda.extra}">Hora extra (+25 %)</th:block></span>
+    </div>
+</section>
+
+<!--/* Libro de saldo: de donde sale lo que se debe. */-->
+<section th:fragment="ledger(a)" class="panel">
+    <div class="panel-head"><h2 th:text="#{saldo.titulo}">Cuentas</h2></div>
+    <div class="panel-body">
+        <div class="ledger">
+            <div class="ledger-row"><span th:text="#{saldo.devengado.confirmado}">Devengado confirmado</span><span class="money" th:text="${@fmt.money(a.earnedConfirmed())}">$0</span></div>
+            <div class="ledger-row"><span th:text="#{saldo.pagado}">Pagado</span><span class="money" th:text="'− ' + ${@fmt.money(a.paidTotal())}">$0</span></div>
+            <div class="ledger-row ledger-total"><span th:text="#{saldo.por.pagar}">Saldo por pagar</span><span class="money" th:text="${@fmt.money(a.balance())}">$0</span></div>
+        </div>
+        <p class="ledger-note" th:if="${a.earnedUnconfirmed().signum() > 0}"
+           th:text="#{saldo.sin.confirmar(${@fmt.money(a.earnedUnconfirmed())})}">Por confirmar</p>
+        <p class="ledger-note" th:if="${a.lastSettledDate() != null}"
+           th:text="#{saldo.liquidado.hasta(${@fmt.date(a.lastSettledDate())})}">Liquidado hasta</p>
+    </div>
+</section>
+
+<!--/* Historial de pagos de una asignacion. */-->
+<section th:fragment="payments(a, role)" class="panel" id="pagos">
+    <div class="panel-head">
+        <h2 th:text="#{pagos.titulo}">Pagos</h2>
+        <p th:text="#{pagos.subtitulo(${#lists.size(a.payments())})}">0 pagos</p>
+    </div>
+    <div class="table-wrap" th:if="${!#lists.isEmpty(a.payments())}">
+        <table class="table table-stack">
+            <thead><tr>
+                <th th:text="#{pagos.col.comprobante}">Comprobante</th>
+                <th th:text="#{pagos.col.tipo}">Tipo</th>
+                <th th:text="#{pagos.col.fecha}">Fecha</th>
+                <th class="right" th:text="#{pagos.col.valor}">Valor</th>
+                <th th:text="#{pagos.col.estado}">Estado</th>
+                <th><span class="sr-only" th:text="#{pagos.col.acciones}">Acciones</span></th>
+            </tr></thead>
+            <tbody>
+            <tr th:each="p : ${a.payments()}" th:classappend="${p.status().name() == 'CANCELLED'} ? 'row-muted'">
+                <td class="cell-main">
+                    <a th:href="${role == 'FOREMAN'} ? @{/maestro/pagos/{id}/comprobante(id=${p.id()})} : @{/trabajador/pagos/{id}/comprobante(id=${p.id()})}"
+                       class="num" th:text="${p.receiptNumber()}">JOR-000001</a>
+                    <div class="small muted" th:if="${p.periodStart() != null}"
+                         th:text="#{pagos.periodo(${@fmt.shortDate(p.periodStart())}, ${@fmt.shortDate(p.periodEnd())})}">periodo</div>
+                    <div class="small muted" th:if="${p.reason() != null}" th:text="${p.reason()}">motivo</div>
+                </td>
+                <td th:attr="data-label=#{pagos.col.tipo}" th:text="#{${'pago.tipo.' + p.type()}}">Tipo</td>
+                <td th:attr="data-label=#{pagos.col.fecha}" th:text="${@fmt.dateTime(p.paidAt())}">fecha</td>
+                <td class="right"><span class="money" th:text="${@fmt.money(p.amount())}">$0</span></td>
+                <td><span th:replace="~{fragments/ui :: paymentStatus(${p.status()})}"></span></td>
+                <td class="right">
+                    <form th:if="${role == 'WORKER' and p.canConfirm()}" class="inline-form"
+                          th:action="@{/trabajador/pagos/{id}/confirmar(id=${p.id()})}" method="post"
+                          th:attr="data-confirm=#{pago.confirmar.pregunta(${@fmt.money(p.amount())})}">
+                        <button class="btn btn-sm btn-ok" type="submit" th:text="#{accion.recibi}">Recibí</button>
+                    </form>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="empty" th:if="${#lists.isEmpty(a.payments())}">
+        <strong th:text="#{pagos.vacio.titulo}">Aún no hay pagos</strong>
+        <span th:text="${role == 'FOREMAN'} ? #{pagos.vacio.maestro} : #{pagos.vacio.trabajador}">texto</span>
+    </div>
+</section>
+
+</body>
+</html>
