@@ -50,7 +50,7 @@ class ForemanCorrectsDisputeE2E {
     }
 
     @Test
-    void elMaestroCorrigeLaJornadaObjetadaYElTrabajadorLaConfirma() {
+    void corregirJornadaObjetada_desdeElNavegador_elTrabajadorVeLaCorreccionYLaConfirma() {
         LoginPage login = LoginPage.open(browser);
         login.loginAs("maestro@jornal.co", DemoDataSeeder.DEMO_PASSWORD);
         assertThat(login.currentPath()).isEqualTo("/maestro");

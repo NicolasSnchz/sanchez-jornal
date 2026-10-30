@@ -20,6 +20,8 @@ import com.jornal.config.PropertiesConfig;
 import com.jornal.config.SecurityConfig;
 import com.jornal.controller.api.ForemanApiController;
 import com.jornal.dto.form.SiteForm;
+import com.jornal.dto.view.SiteSummary;
+import com.jornal.entity.SiteStatus;
 import com.jornal.exception.ApiExceptionHandler;
 import com.jornal.exception.BusinessRuleException;
 import com.jornal.exception.ResourceNotFoundException;
@@ -33,6 +35,8 @@ import com.jornal.service.SiteService;
 import com.jornal.service.WorkDayService;
 import com.jornal.support.TestData;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -87,6 +91,20 @@ class ForemanApiControllerTest {
         when(jwtService.validateAndGetUserId(WORKER_TOKEN)).thenReturn(worker.id());
         when(userDetailsService.loadById(foreman.id())).thenReturn(foreman);
         when(userDetailsService.loadById(worker.id())).thenReturn(worker);
+    }
+
+    @Test
+    void listarObras_conToken_200ConLasObrasDelMaestroDelToken() throws Exception {
+        SiteSummary site = new SiteSummary(UUID.randomUUID(), "Casa Duarte", "Calle 12 # 2E-45", "Caobos",
+                "C\u00facuta", SiteStatus.IN_PROGRESS, false, LocalDate.of(2026, 9, 28), LocalDate.of(2026, 12, 11),
+                3, 4L, new BigDecimal("6016251"));
+        when(siteService.listSites(foreman.id())).thenReturn(List.of(site));
+
+        mvc.perform(get("/api/obras").header(HttpHeaders.AUTHORIZATION, "Bearer " + FOREMAN_TOKEN))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Casa Duarte"))
+                .andExpect(jsonPath("$[0].status").value("IN_PROGRESS"))
+                .andExpect(jsonPath("$[0].laborCost").value(6016251));
     }
 
     @Test

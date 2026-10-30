@@ -3,6 +3,8 @@ package com.jornal.web;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.jornal.entity.Assignment;
 import com.jornal.entity.ConstructionSite;
@@ -20,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -57,8 +60,24 @@ class PagesRenderIT {
     @Autowired
     private TransactionTemplate transaction;
 
+    /** Con el perfil dev (y con demo) la API queda documentada en Swagger con sus respuestas de error. */
+    @Test
+    void documentacionOpenApi_perfilDev_publicaCadaOperacionConSusErroresApiError() throws Exception {
+        mvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.components.schemas.ApiError").exists())
+                .andExpect(jsonPath("$.paths['/api/obras'].post.responses['201']").exists())
+                .andExpect(jsonPath("$.paths['/api/obras'].post.responses['400'].content['application/json']"
+                        + ".schema['$ref']").value("#/components/schemas/ApiError"))
+                .andExpect(jsonPath("$.paths['/api/obras'].post.responses['422']").exists())
+                .andExpect(jsonPath("$.paths['/api/obras/{id}'].get.responses['404']").exists())
+                .andExpect(jsonPath("$.paths['/api/auth/login'].post.responses['401']").exists())
+                .andExpect(jsonPath("$.paths['/api/auth/login'].post.responses['422']").doesNotExist());
+        mvc.perform(get("/swagger-ui/index.html")).andExpect(status().isOk());
+    }
+
     @TestFactory
-    Stream<DynamicTest> cadaPantallaSeRenderizaCompleta() {
+    Stream<DynamicTest> pantallas_deCadaRolConDatosDeDemo_seRenderizanSinErroresNiTextosFaltantes() {
         List<DynamicTest> tests = new ArrayList<>();
         transaction.executeWithoutResult(status -> buildPages(tests));
         return tests.stream();

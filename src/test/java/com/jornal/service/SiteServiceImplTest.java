@@ -74,14 +74,16 @@ class SiteServiceImplTest {
     }
 
     @Test
-    void openFront_jornalBajoElMinimoLegal_noSeGuarda() {
+    void openFront_jornalBajoElMinimoLegal_noSeGuardaNiCambiaLaObra() {
         ConstructionSite site = TestData.siteInProgress(foreman);
+        int frontsBefore = site.getFronts().size();
         when(siteRepository.findByIdAndForemanId(site.getId(), foreman.getId())).thenReturn(Optional.of(site));
         FrontForm form = frontForm("60000");
 
         assertThatThrownBy(() -> service.openFront(foreman.getId(), site.getId(), form))
                 .extracting("code").isEqualTo("frente.jornal.bajo.minimo");
         verify(frontRepository, never()).save(any());
+        assertThat(site.getFronts()).hasSize(frontsBefore);
     }
 
     @Test

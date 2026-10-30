@@ -1,8 +1,10 @@
 package com.jornal.api;
 
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestBuilders.formLogin;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -26,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 
 /**
@@ -102,6 +105,28 @@ class ApiIT {
         mvc.perform(get("/api/obras").header(HttpHeaders.AUTHORIZATION, "Bearer " + token))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("API_TOKEN_INVALIDO"));
+    }
+
+    /**
+     * Las dos cadenas de filtros conviven sin mezclarse: la sesion del navegador no
+     * abre la API y el token JWT no abre las paginas web.
+     */
+    @Test
+    void sesionWebYTokenJwt_alMismoTiempo_cadaUnoSoloAbreSuPropiaCadena() throws Exception {
+        MockHttpSession session = (MockHttpSession) mvc.perform(formLogin("/login").user("email", foreman.getEmail())
+                        .password("password", Scenario.PASSWORD))
+                .andExpect(status().is3xxRedirection())
+                .andReturn().getRequest().getSession(false);
+        String bearer = bearer(foreman.getEmail());
+
+        mvc.perform(get("/maestro").session(session)).andExpect(status().isOk());
+        mvc.perform(get("/api/obras").header(HttpHeaders.AUTHORIZATION, bearer)).andExpect(status().isOk());
+        mvc.perform(get("/api/obras").session(session))
+                .andExpect(status().isUnauthorized())
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE));
+        mvc.perform(get("/maestro").header(HttpHeaders.AUTHORIZATION, bearer))
+                .andExpect(status().is3xxRedirection())
+                .andExpect(header().string(HttpHeaders.LOCATION, endsWith("/login")));
     }
 
     @Test
