@@ -1,0 +1,10 @@
+target/
+logs/
+.git/
+.github/
+.idea/
+.vscode/
+docs/
+postman/
+*.md
+.env

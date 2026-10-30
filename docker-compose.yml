@@ -1,0 +1,37 @@
+# Ambiente de produccion local: aplicacion + PostgreSQL.
+#   1. Copia .env.example como .env y cambia las claves.
+#   2. docker compose up --build
+#   3. Abre http://localhost:8080
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: jornal
+      POSTGRES_USER: ${DB_USERNAME:-jornal}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en el archivo .env}
+    volumes:
+      - jornal-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-jornal} -d jornal"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db:5432/jornal
+      DB_USERNAME: ${DB_USERNAME:-jornal}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET (minimo 32 caracteres) en el archivo .env}
+      # Sin HTTPS en local la cookie de sesion no puede ser Secure.
+      COOKIE_SECURE: "false"
+    ports:
+      - "8080:8080"
+
+volumes:
+  jornal-data:
