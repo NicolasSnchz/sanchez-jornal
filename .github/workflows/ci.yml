@@ -1,6 +1,9 @@
-# Integracion continua: en cada push y pull request a main se compila, se corren
-# todas las pruebas con cobertura minima y se verifica que la imagen Docker
-# arranque y responda sana. Si algo falla, el cambio no se integra.
+# CI/CD: en cada push y pull request a main
+#   1. compila y corre todas las pruebas con cobertura minima, en Java 17 y en Java 21;
+#   2. levanta la aplicacion con docker compose (PostgreSQL + perfiles prod y demo),
+#      revisa que responda sana y corre la coleccion de Postman contra ella;
+#   3. solo en main y si todo lo anterior paso: publica la imagen en GitHub Packages (ghcr.io).
+# Si algo falla, el cambio no se integra ni se publica, y el resumen de la ejecucion muestra por que.
 name: CI
 
 on:
@@ -11,60 +14,103 @@ on:
 
 jobs:
   build-and-test:
-    name: Compilar y probar
-    runs-on: ubuntu-latest
+    name: Pruebas (Java ${{ matrix.java }})
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        java: ['17', '21']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - name: JDK 21
-        uses: actions/setup-java@v4
+      - name: JDK ${{ matrix.java }}
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: ${{ matrix.java }}
           cache: maven
 
       - name: Pruebas y cobertura (JaCoCo >= 70 %)
         run: mvn -B verify
 
+      - name: Resumen de pruebas y cobertura
+        if: always()
+        run: |
+          if ls target/surefire-reports/TEST-*.xml > /dev/null 2>&1; then
+            total=$(cat target/surefire-reports/TEST-*.xml | grep -c '<testcase ' || true)
+            fallas=$(cat target/surefire-reports/TEST-*.xml | grep -c '<failure\|<error ' || true)
+            echo "**Java ${{ matrix.java }}:** $total pruebas, $fallas con falla o error" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f target/site/jacoco/jacoco.csv ]; then
+            awk -F, 'NR > 1 { lm += $8; lc += $9; bm += $6; bc += $7 }
+              END { printf "Cobertura de lineas: %.1f %%, de ramas: %.1f %%\n", 100 * lc / (lm + lc), 100 * bc / (bm + bc) }' \
+              target/site/jacoco/jacoco.csv >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Reportes de pruebas
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: reportes-de-pruebas
+          name: reportes-java-${{ matrix.java }}
           path: |
             target/surefire-reports/
             target/site/jacoco/
 
   docker:
-    name: Imagen Docker
-    runs-on: ubuntu-latest
+    name: Docker compose y Postman
+    runs-on: ubuntu-24.04
     needs: build-and-test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - name: Construir imagen
-        run: docker build -t jornal:ci .
-
-      - name: Prueba de humo (PostgreSQL + aplicacion)
-        env:
-          JWT_SECRET: secreto-solo-para-la-prueba-de-humo-de-ci-2026
+      - name: Levantar con docker compose (igual que en el README)
         run: |
-          docker network create jornal-ci
-          docker run -d --name db --network jornal-ci \
-            -e POSTGRES_DB=jornal -e POSTGRES_USER=jornal -e POSTGRES_PASSWORD=jornal postgres:16-alpine
-          for i in $(seq 1 20); do docker exec db pg_isready -U jornal && break; sleep 2; done
-          docker run -d --name app --network jornal-ci -p 8080:8080 \
-            -e DB_URL=jdbc:postgresql://db:5432/jornal -e DB_USERNAME=jornal -e DB_PASSWORD=jornal \
-            -e JWT_SECRET="$JWT_SECRET" -e COOKIE_SECURE=false jornal:ci
-          for i in $(seq 1 30); do
-            if curl -fsS http://localhost:8080/actuator/health | grep -q '"status":"UP"'; then
-              echo "Aplicacion sana"; exit 0
-            fi
+          cp .env.example .env
+          docker compose up -d --build
+
+      - name: Prueba de humo
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:8080/actuator/health | grep -q '"status":"UP"'; then break; fi
             sleep 3
           done
-          docker logs app
-          exit 1
+          curl -fsS http://localhost:8080/actuator/health | grep -q '"status":"UP"'
+          # Login con un usuario de demostracion: prueba PostgreSQL, Flyway y los datos de ejemplo.
+          curl -fsS -X POST http://localhost:8080/api/auth/login -H 'Content-Type: application/json' \
+            -d '{"email":"maestro@jornal.co","password":"Jornal2026*"}' | grep -q accessToken
+          # Sin token la API responde 401.
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/api/obras)" = "401"
+          echo "Aplicacion sana en Docker con PostgreSQL" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Coleccion de Postman con Newman
+        run: npx --yes newman@6 run postman/jornal.postman_collection.json -e postman/jornal-local.postman_environment.json
+
+      - name: Logs de la aplicacion si algo falla
+        if: failure()
+        run: |
+          { echo '### Logs de la aplicacion'; echo '```'; docker compose logs --no-color app | tail -n 120; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          docker compose logs --no-color
 
       - name: Limpieza
         if: always()
-        run: docker rm -f app db || true
+        run: docker compose down -v
+
+  publish:
+    name: Publicar imagen (ghcr.io)
+    runs-on: ubuntu-24.04
+    needs: docker
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Construir y publicar
+        run: |
+          IMAGE=ghcr.io/$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker build -t "$IMAGE:latest" -t "$IMAGE:${GITHUB_SHA::7}" .
+          docker push --all-tags "$IMAGE"
+          echo "Imagen publicada: \`$IMAGE:${GITHUB_SHA::7}\`" >> "$GITHUB_STEP_SUMMARY"
