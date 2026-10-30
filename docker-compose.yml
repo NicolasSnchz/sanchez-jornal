@@ -1,37 +1,51 @@
-# Ambiente de produccion local: aplicacion + PostgreSQL.
-#   1. Copia .env.example como .env y cambia las claves.
+# Jornal con PostgreSQL en contenedores.
+#   1. Copia .env.example como .env (y cambia las claves si no es solo una prueba).
 #   2. docker compose up --build
-#   3. Abre http://localhost:8080
+#   3. Abre http://localhost:8080 (maestro@jornal.co / Jornal2026*)
+# Por defecto corre con los perfiles prod + demo: base PostgreSQL, secretos por
+# variables de entorno, datos de demostracion y Swagger UI. Para un despliegue
+# real se pone SPRING_PROFILES_ACTIVE=prod en el .env.
+name: jornal
+
 services:
   db:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: jornal
       POSTGRES_USER: ${DB_USERNAME:-jornal}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en el archivo .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD. Copia .env.example como .env}
     volumes:
       - jornal-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-jornal} -d jornal"]
+      # Por TCP y no por socket: al inicializar la base, PostgreSQL levanta un servidor
+      # temporal que solo escucha por socket. Asi la app espera al servidor definitivo.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${DB_USERNAME:-jornal} -d jornal"]
       interval: 5s
       timeout: 3s
-      retries: 10
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
 
   app:
     build: .
+    image: jornal:latest
     depends_on:
       db:
         condition: service_healthy
     environment:
-      SPRING_PROFILES_ACTIVE: prod
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod,demo}
       DB_URL: jdbc:postgresql://db:5432/jornal
       DB_USERNAME: ${DB_USERNAME:-jornal}
-      DB_PASSWORD: ${DB_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET (minimo 32 caracteres) en el archivo .env}
+      DB_PASSWORD: ${DB_PASSWORD:?Falta DB_PASSWORD. Copia .env.example como .env}
+      JWT_SECRET: ${JWT_SECRET:?Falta JWT_SECRET (minimo 32 caracteres). Copia .env.example como .env}
       # Sin HTTPS en local la cookie de sesion no puede ser Secure.
       COOKIE_SECURE: "false"
     ports:
       - "8080:8080"
+    volumes:
+      - jornal-logs:/app/logs
+    restart: unless-stopped
 
 volumes:
   jornal-data:
+  jornal-logs:

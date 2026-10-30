@@ -15,13 +15,20 @@ COPY src ./src
 RUN mvn -B -q -DskipTests package
 
 FROM eclipse-temurin:21-jre-alpine AS runtime
+LABEL org.opencontainers.image.source="https://github.com/NicolasSnchz/sanchez-jornal" \
+      org.opencontainers.image.description="Jornal: contratacion de ayudantes de obra por dias"
 WORKDIR /app
-RUN addgroup -S jornal && adduser -S jornal -G jornal
+# Usuario sin privilegios que solo puede escribir en la carpeta de logs: la aplicacion
+# escribe /app/logs/jornal.log y, si no pudiera crear ese archivo, Spring Boot no arrancaria.
+RUN addgroup -S jornal && adduser -S jornal -G jornal \
+    && mkdir -p /app/logs && chown jornal:jornal /app/logs
 COPY --from=build /app/target/jornal-*.jar app.jar
 USER jornal
 EXPOSE 8080
 ENV SPRING_PROFILES_ACTIVE=prod \
+    LOG_PATH=/app/logs \
+    TZ=America/Bogota \
     JAVA_OPTS="-XX:MaxRAMPercentage=75"
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-    CMD wget -qO- http://localhost:8080/actuator/health | grep -q '"status":"UP"' || exit 1
+    CMD wget -qO- http://127.0.0.1:8080/actuator/health | grep -q '"status":"UP"' || exit 1
 ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar app.jar"]

@@ -36,14 +36,17 @@ import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Datos de demostracion para el perfil dev, todos relativos a la fecha de hoy:
- * la demo se ve "viva" el dia que se ejecute.
+ * Datos de demostracion, todos relativos a la fecha de hoy: la demo se ve "viva"
+ * el dia que se ejecute. Se activa con app.seed.enabled=true, que encienden los
+ * perfiles dev y demo; el perfil prod lo deja apagado.
+ *
+ * <p>Solo carga datos si la base esta vacia, asi que reiniciar el contenedor con
+ * PostgreSQL no duplica nada.
  *
  * <p>No inserta filas a mano: simula el paso del tiempo llamando a los mismos
  * metodos de dominio y estrategias de pago que usa la aplicacion (invitar,
@@ -54,7 +57,6 @@ import org.springframework.transaction.annotation.Transactional;
  * maestro@jornal.co, maestra2@jornal.co, trabajador@jornal.co y los demas trabajadores.
  */
 @Component
-@Profile("dev")
 @ConditionalOnProperty(name = "app.seed.enabled", havingValue = "true")
 public class DemoDataSeeder implements ApplicationRunner {
 
@@ -89,6 +91,7 @@ public class DemoDataSeeder implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments args) {
         if (userRepository.count() > 0) {
+            log.info("Datos de demostracion omitidos: la base ya tiene usuarios");
             return;
         }
         LocalDate today = LocalDate.now(clock);
