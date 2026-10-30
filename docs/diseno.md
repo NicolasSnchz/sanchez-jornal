@@ -256,7 +256,7 @@ flowchart LR
 | A02 Fallas criptográficas | BCrypt (costo 12) para las claves; JWT firmado con HS256 y secreto de mínimo 256 bits que viene de una variable de entorno; cookie de sesión `HttpOnly`, `SameSite=Lax` y `Secure` en producción. |
 | A03 Inyección | JPQL con parámetros enlazados (probado con `' OR '1'='1`); Thymeleaf escapa todo el texto (probado con `<script>`); CSP estricta sin scripts ni estilos en línea. |
 | A04 Diseño inseguro | Reglas de negocio en el dominio con pruebas; bloqueo optimista para que dos pagos simultáneos no paguen dos veces el mismo saldo. |
-| A05 Configuración | Actuator solo expone `health` e `info` en producción (nunca `env`); Swagger solo en dev; errores sin stack trace. |
+| A05 Configuración | Actuator solo expone `health` e `info` en producción (nunca `env`); Swagger solo con los perfiles dev y demo; errores sin stack trace. |
 | A07 Autenticación | Bloqueo de 15 minutos tras 5 intentos fallidos; mismo mensaje exista o no el correo (también en el registro); clave mínima de 10 caracteres con letras y números. |
 | A09 Registro | Logs con ids y eventos, nunca correos completos, claves ni tokens. |
 
@@ -316,15 +316,15 @@ La pirámide: muchas pruebas rápidas del dominio, menos de servicio y web, y po
 |---|---|---|---|
 | Unitarias del dominio | Cálculo de jornadas, horarios legales, ciclo de vida, saldos, reglas de anulación | JUnit 5, AssertJ, `@ParameterizedTest` | `WorkDayTest`, `WorkFrontTest`, `AssignmentTest`, `ConstructionSiteTest`, `UserTest`, `WorkerTest`, `PaymentStrategiesTest` |
 | Unitarias de utilidades | Valor en letras, festivos, formatos, mínimo legal, redirección segura, JWT, bloqueo por intentos | JUnit 5 | `AmountInWordsTest`, `ColombianHolidaysTest`, `FormatsTest`, `WebSupportTest`, `JwtServiceTest`, `LoginAttemptListenerTest` |
-| Servicios | Orquestación con repositorios simulados (escuela clásica: se simula solo la base de datos y se verifica el resultado, no la implementación) | Mockito | `*ServiceImplTest` |
+| Servicios | Orquestación con repositorios simulados (escuela clásica: se simula solo la base de datos y se verifica el resultado, no la implementación) | Mockito (`@Mock`, `@InjectMocks` en `ProfileServiceImplTest`) | `*ServiceImplTest` |
 | Repositorios | Consultas de propiedad, cruces de fechas, búsqueda segura, esquema Flyway = mapeo JPA | `@DataJpaTest` | `RepositoryQueriesTest` |
 | Controlador aislado | Códigos HTTP y JSON de la API sin levantar toda la aplicación | `@WebMvcTest` + `@MockitoBean` | `ForemanApiControllerTest` |
-| Integración web y API | Seguridad, CSRF, bloqueo, encabezados, IDOR, XSS, JWT, formato de errores | `@SpringBootTest` + MockMvc | `WebSecurityIT`, `IdorAndXssIT`, `ApiIT` |
-| Flujo completo | Una asignación de principio a fin con el reloj avanzando día a día; al final lo devengado = lo pagado | `@SpringBootTest` | `PayrollFlowIT` |
-| Interfaz | Cada pantalla de cada rol se renderiza sin errores ni textos faltantes | MockMvc + datos de demo | `PagesRenderIT` |
+| Integración web y API | Seguridad, CSRF, bloqueo, encabezados, IDOR, XSS, JWT, convivencia de sesión y JWT, formato de errores | `@SpringBootTest` + MockMvc | `WebSecurityIT`, `IdorAndXssIT`, `ApiIT` |
+| Flujo completo | Una asignación de principio a fin con el reloj avanzando día a día; al final lo devengado = lo pagado. Una vez con los servicios y otra solo con peticiones HTTP a la API | `@SpringBootTest` | `PayrollFlowIT`, `ApiFlowIT` |
+| Interfaz y documentación | Cada pantalla de cada rol se renderiza sin errores ni textos faltantes; Swagger publica cada operación con sus errores | MockMvc + datos de demo | `PagesRenderIT` |
 | Punta a punta | El maestro corrige una objeción desde el navegador y el trabajador la ve | HtmlUnit + Selenium, Page Objects | `ForemanCorrectsDisputeE2E` |
 | API externa | Colección ejecutable contra la aplicación en marcha | Postman / Newman | `postman/` |
 
 Nombres de prueba: `metodo_condicion_resultadoEsperado`, por ejemplo `register_pagoQueNoCumpleLasReglas_noGastaUnNumeroDeComprobante`.
 
-Cobertura: JaCoCo exige **mínimo 70 % de líneas** en `mvn verify` (la construcción falla si no se cumple).
+Cobertura: JaCoCo exige **mínimo 70 % de líneas** en `mvn verify` (la construcción falla si no se cumple). CI corre toda la suite con Java 17 y con Java 21, y la colección de Postman contra la aplicación levantada con Docker y PostgreSQL.
