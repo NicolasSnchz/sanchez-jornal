@@ -14,8 +14,9 @@
         <section class="balance-hero is-worker">
             <span class="label" th:text="#{trabajador.saldo}">Te deben</span>
             <span class="money-xl" th:text="${@fmt.money(d.balance())}">$35.000</span>
-            <span class="sub" th:if="${d.unconfirmed().signum() > 0}"
-                  th:utext="#{trabajador.saldo.por.confirmar(${@fmt.money(d.unconfirmed())})}">+ $X por confirmar</span>
+            <span class="sub" th:if="${d.unconfirmed().signum() > 0}"><span th:text="#{trabajador.saldo.por.confirmar.antes}">Y hay</span>
+                <strong th:text="${@fmt.money(d.unconfirmed())}">$375.000</strong>
+                <span th:text="#{trabajador.saldo.por.confirmar.despues}">en jornadas que aún debes confirmar.</span></span>
             <span class="sub" th:if="${d.unconfirmed().signum() == 0}" th:text="#{trabajador.saldo.al.dia}">Todas tus jornadas están confirmadas.</span>
         </section>
 

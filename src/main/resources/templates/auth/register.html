@@ -29,7 +29,7 @@
                     </span>
                 </a>
             </div>
-            <p class="muted" th:utext="#{registro.ya.tengo(@{/login})}">¿Ya tienes cuenta?</p>
+            <p class="muted"><span th:text="#{registro.ya.tengo}">¿Ya tienes cuenta?</span> <a th:href="@{/login}" th:text="#{registro.ingresar}">Ingresa</a></p>
         </div>
     </section>
 </div>

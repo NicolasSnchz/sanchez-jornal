@@ -110,9 +110,14 @@ public class SiteServiceImpl implements SiteService {
         if (form.getEndDate().isBefore(LocalDate.now(clock))) {
             throw new BusinessRuleException("frente.fin.pasado");
         }
-        WorkFront front = site.openFront(form.toData());
-        wagePolicy.requireLegalWage(front.getOfferedDailyWage(), front.scheduledMinutesPerDay(),
-                "frente.jornal.bajo.minimo");
+        WorkFront.FrontData data = form.toData();
+        // El jornal se valida antes de tocar la obra: si no cumple, la obra queda intacta.
+        // Un horario sin minutos lo rechaza la entidad con su propio mensaje.
+        if (data.scheduledMinutesPerDay() > 0) {
+            wagePolicy.requireLegalWage(data.offeredDailyWage(), data.scheduledMinutesPerDay(),
+                    "frente.jornal.bajo.minimo");
+        }
+        WorkFront front = site.openFront(data);
         frontRepository.save(front);
         log.info("Frente {} abierto en la obra {}", front.getId(), siteId);
         return front.getId();

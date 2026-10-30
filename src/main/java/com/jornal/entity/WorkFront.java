@@ -257,5 +257,13 @@ public class WorkFront extends BaseEntity {
             LocalTime startTime,
             LocalTime endTime,
             int lunchBreakMinutes) {
+
+        /** Minutos pagados por dia segun el horario, para validar el jornal antes de abrir el frente. */
+        public int scheduledMinutesPerDay() {
+            if (startTime == null || endTime == null) {
+                return 0;
+            }
+            return (int) Duration.between(startTime, endTime).toMinutes() - lunchBreakMinutes;
+        }
     }
 }

@@ -59,7 +59,7 @@
                 <button class="btn btn-primary btn-lg btn-block" type="submit" th:text="#{login.boton}">Ingresar</button>
             </form>
 
-            <p class="muted" th:utext="#{login.registro(@{/registro})}">¿No tienes cuenta? Regístrate</p>
+            <p class="muted"><span th:text="#{login.sin.cuenta}">¿No tienes cuenta?</span> <a th:href="@{/registro}" th:text="#{login.crear.cuenta}">Crea una</a></p>
 
             <div class="demo-accounts" th:if="${demoAccounts}">
                 <strong th:text="#{login.demo.titulo}">Cuentas de demostración</strong>
